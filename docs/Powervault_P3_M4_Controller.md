@@ -87,14 +87,26 @@ The M4 runs an unauthenticated MQTT broker accessible on the local network:
 mosquitto_sub -h <M4_IP> -t 'pv/#' -v
 ```
 
+> ⚠️ **Important:** The MQTT broker is **read-only** for local clients. Publishing to topics does not control the system - the M4 ignores locally published messages. Commands must come from the cloud via authenticated connection.
+
 **Published Topics:**
 - `pv/PV3/<DEVICE_ID>/inverter/measurements` - Inverter readings
 - `pv/PV3/<DEVICE_ID>/inverter/alarms` - Alarm states
 - `pv/PV3/<DEVICE_ID>/inverter/charge` - Battery charge power
 - `pv/PV3/<DEVICE_ID>/pylontech/info` - Battery health data
 - `pv/PV3/<DEVICE_ID>/schedule/event` - Current schedule state
+- `pv/PV3/<DEVICE_ID>/eps_schedule/event` - EPS schedule state
 - `pv/PV3/<DEVICE_ID>/ffr/measurements` - CT measurements
 - `pv/PV3/<DEVICE_ID>/bms/soc` - State of charge
+- `pv/PV3/<DEVICE_ID>/m4/maxpower` - Current power limits
+- `pv/PV3/<DEVICE_ID>/ffrcontroller/state` - FFR controller status
+- `pv/PV3/<DEVICE_ID>/eps/status` - EPS mode and reserve SoC
+- `pv/PV3/<DEVICE_ID>/safetycheck/state` - Safety check status
+- `pv/PV3/<DEVICE_ID>/m4/pylontech_alerts` - Battery alerts
+
+**Cloud Command Topics (received from Powervault cloud):**
+- `groups/powervault/ffr-low/schedule` - FFR schedule commands
+- Schedule saved to: `/data/appconfigs/cloudconnection/state_schedules/ffr_schedule.json`
 
 ---
 

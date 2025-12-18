@@ -19,11 +19,82 @@ Your Powervault P3 contains a **Voltronic InfiniSolar E 5.5KW** inverter which u
 
 ---
 
+## MQTT Control Testing Results (December 2024)
+
+### Summary: MQTT is Read-Only
+
+Extensive testing has confirmed that the M4's MQTT broker is **publish-only** - it broadcasts data but does not accept commands via MQTT publish.
+
+### What We Tested
+
+| Test | Result |
+|------|--------|
+| Publish to `schedule/event` | ❌ Ignored - schedule unchanged |
+| Publish to `eps_schedule/event` | ❌ Ignored |
+| Publish to `groups/powervault/schedule` | ❌ Ignored |
+| Publish to various `*/command`, `*/control`, `*/set` topics | ❌ No response |
+
+### MQTT Topics Discovered
+
+**Schedule Topics (Read-Only):**
+```
+pv/PV3/<ID>/schedule/event
+  {"time": "2025-12-18T07:46:49", "event": 0, "setpoint": 0}
+  
+  Event codes:
+  0 = Idle
+  1 = Charge
+  2 = Discharge
+  3 = Force Charge
+  4 = Force Discharge
+
+pv/PV3/<ID>/eps_schedule/event
+  {"reserved_soc": 0, "time": "...", "event": "off"}
+```
+
+**New Topics Found:**
+```
+pv/PV3/<ID>/m4/maxpower
+  {"ChgPower": 4792, "DchgPower": -6750}  # Current power limits in W
+
+pv/PV3/<ID>/ffrcontroller/state
+  {"State": 0}  # FFR controller status
+
+pv/PV3/<ID>/eps/status
+  {"Reserve": 20, "Mode": 0}  # EPS reserve SoC %
+
+pv/PV3/<ID>/bms/soc (per module)
+  {"module_addr": 4, "StateOfCharge": 8200}  # Individual module SoC (÷100 for %)
+```
+
+### Cloud Command Path (from Powervault Logs)
+
+Historical logs from Powervault show commands arrive via:
+```
+Topic: groups/powervault/ffr-low/schedule
+Saved to: /data/appconfigs/cloudconnection/state_schedules/ffr_schedule.json
+```
+
+This confirms the M4 receives commands from the **cloud** on specific topics, not the local MQTT broker.
+
+### Conclusion
+
+Local MQTT control is **not possible** without:
+1. Shell access to edit config files directly
+2. Understanding the cloud authentication to spoof commands
+3. Reverse engineering the internal command processing
+
+**Serial console access is the most promising next step.**
+
+---
+
 ## Part 1: The SD Card Approach (Easiest)
+
+> **Note:** Testing has shown the M4 boots from **eMMC**, not SD card. The SD slot appears unused or only for updates. Serial console access is now the recommended approach.
 
 ### Why This is the Best First Step
 
-The M4 controller is a **Raspberry Pi** running Linux. The SD card contains:
+The M4 controller is a **custom NXP i.MX ARM board** running embedded Linux. The filesystem contains:
 - Flask application source code (Python)
 - Authentication credentials/tokens
 - MQTT configuration

@@ -17,7 +17,17 @@ Powervault Ltd entered administration in November 2024, leaving P3 owners uncert
 | **Battery Health Data** | ✅ Working | SOH, cycles, cell voltages, temperatures |
 | **Inverter Alarms** | ✅ Working | All 22 alarm states monitored |
 | **Schedule Monitoring** | ✅ Working | See current charge/discharge events |
-| **Local Control** | 🔄 In Progress | Investigating P18 protocol access |
+| **MQTT Control** | ❌ Not Working | M4 ignores local MQTT publishes |
+| **Local Control** | 🔄 In Progress | Serial console access needed |
+
+### MQTT Control Testing
+
+We've confirmed that publishing to MQTT topics **does not** control the P3:
+- The M4 ignores locally published messages
+- Commands must come from the cloud via authenticated connection
+- Schedule files are stored at `/data/appconfigs/cloudconnection/state_schedules/`
+
+**Next step:** Serial console access to edit config files directly.
 
 ## Quick Start
 
@@ -66,9 +76,23 @@ The P3's M4 controller publishes to these topics:
 | `pv/PV3/<ID>/inverter/alarms` | Alarm states + temperatures |
 | `pv/PV3/<ID>/inverter/charge` | Battery charge/discharge power |
 | `pv/PV3/<ID>/pylontech/info` | Battery health (SOH, cycles, cells) |
-| `pv/PV3/<ID>/schedule/event` | Current schedule state |
+| `pv/PV3/<ID>/schedule/event` | Current schedule state (event 0-4, setpoint) |
+| `pv/PV3/<ID>/eps_schedule/event` | EPS schedule (reserved_soc, event on/off) |
 | `pv/PV3/<ID>/ffr/measurements` | CT readings (grid, house, aux) |
 | `pv/PV3/<ID>/bms/soc` | State of charge |
+| `pv/PV3/<ID>/m4/maxpower` | Current charge/discharge power limits |
+| `pv/PV3/<ID>/eps/status` | EPS reserve SoC and mode |
+| `pv/PV3/<ID>/safetycheck/state` | Safety check status |
+
+### Schedule Event Codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | Idle |
+| 1 | Charge |
+| 2 | Discharge |
+| 3 | Force Charge |
+| 4 | Force Discharge |
 
 ## Hardware Overview
 
