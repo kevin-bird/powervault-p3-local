@@ -1,0 +1,167 @@
+# Alarm Sensors for mqtt.yaml
+# Append to your existing sensor: section
+# Topic: pv/PV3/PV001001DEV/inverter/alarms
+
+  # =======================
+  # ALARM LIST (FIXED)
+  # =======================
+  - name: "PV3 Alarm List"
+    unique_id: pv3_alarm_list_fixed
+    state_topic: "pv/PV3/PV001001DEV/inverter/alarms"
+    value_template: >
+      {% set ns = namespace(alarms=[]) %}
+      {% set exclude = ['timestamp', 'warnings_summary', 'inverter_temperature', 'boost_temperature', 'inner_temperature'] %}
+      {% for key, val in value_json.items() %}
+        {% if val == '1' and key not in exclude %}
+          {% set ns.alarms = ns.alarms + [key | replace('_', ' ') | title] %}
+        {% endif %}
+      {% endfor %}
+      {{ ns.alarms | join(', ') if ns.alarms else 'None' }}
+    icon: mdi:alert-circle-outline
+
+  # =======================
+  # INDIVIDUAL ALARMS (binary style)
+  # =======================
+  - name: "PV3 Alarm Fan Lock"
+    unique_id: pv3_alarm_fan_lock
+    state_topic: "pv/PV3/PV001001DEV/inverter/alarms"
+    value_template: "{{ 'ON' if value_json.fan_lock == '1' else 'OFF' }}"
+    icon: mdi:fan-alert
+
+  - name: "PV3 Alarm Initial Fail"
+    unique_id: pv3_alarm_initial_fail
+    state_topic: "pv/PV3/PV001001DEV/inverter/alarms"
+    value_template: "{{ 'ON' if value_json.initial_fail == '1' else 'OFF' }}"
+    icon: mdi:alert-circle
+
+  - name: "PV3 Alarm Battery Weak"
+    unique_id: pv3_alarm_battery_weak
+    state_topic: "pv/PV3/PV001001DEV/inverter/alarms"
+    value_template: "{{ 'ON' if value_json.battery_weak == '1' else 'OFF' }}"
+    icon: mdi:battery-alert
+
+  - name: "PV3 Alarm Grid Voltage OOR"
+    unique_id: pv3_alarm_grid_voltage_oor
+    state_topic: "pv/PV3/PV001001DEV/inverter/alarms"
+    value_template: "{{ 'ON' if value_json.grid_ip_voltage_outofrange == '1' else 'OFF' }}"
+    icon: mdi:flash-triangle
+
+  - name: "PV3 Alarm Grid Freq OOR"
+    unique_id: pv3_alarm_grid_freq_oor
+    state_topic: "pv/PV3/PV001001DEV/inverter/alarms"
+    value_template: "{{ 'ON' if value_json.grid_ip_freq_outofrange == '1' else 'OFF' }}"
+    icon: mdi:sine-wave
+
+  - name: "PV3 Alarm Battery Discharge Low"
+    unique_id: pv3_alarm_battery_discharge_low
+    state_topic: "pv/PV3/PV001001DEV/inverter/alarms"
+    value_template: "{{ 'ON' if value_json.battery_discharge_low == '1' else 'OFF' }}"
+    icon: mdi:battery-arrow-down
+
+  - name: "PV3 Alarm Battery Low"
+    unique_id: pv3_alarm_battery_low
+    state_topic: "pv/PV3/PV001001DEV/inverter/alarms"
+    value_template: "{{ 'ON' if value_json.battery_low == '1' else 'OFF' }}"
+    icon: mdi:battery-low
+
+  - name: "PV3 Alarm PV Loss"
+    unique_id: pv3_alarm_pv_loss
+    state_topic: "pv/PV3/PV001001DEV/inverter/alarms"
+    value_template: "{{ 'ON' if value_json.pv_loss == '1' else 'OFF' }}"
+    icon: mdi:solar-power-variant-outline
+
+  - name: "PV3 Alarm PV1 Loss"
+    unique_id: pv3_alarm_pv1_loss
+    state_topic: "pv/PV3/PV001001DEV/inverter/alarms"
+    value_template: "{{ 'ON' if value_json.pv1_loss == '1' else 'OFF' }}"
+    icon: mdi:solar-power-variant-outline
+
+  - name: "PV3 Alarm PV2 Loss"
+    unique_id: pv3_alarm_pv2_loss
+    state_topic: "pv/PV3/PV001001DEV/inverter/alarms"
+    value_template: "{{ 'ON' if value_json.pv2_loss == '1' else 'OFF' }}"
+    icon: mdi:solar-power-variant-outline
+
+  - name: "PV3 Alarm PV Low"
+    unique_id: pv3_alarm_pv_low
+    state_topic: "pv/PV3/PV001001DEV/inverter/alarms"
+    value_template: "{{ 'ON' if value_json.pv_low == '1' else 'OFF' }}"
+    icon: mdi:solar-power
+
+  - name: "PV3 Alarm Grid Freq Under"
+    unique_id: pv3_alarm_grid_freq_under
+    state_topic: "pv/PV3/PV001001DEV/inverter/alarms"
+    value_template: "{{ 'ON' if value_json.grid_freq_under_limit == '1' else 'OFF' }}"
+    icon: mdi:sine-wave
+
+  - name: "PV3 Alarm Grid Freq Over"
+    unique_id: pv3_alarm_grid_freq_over
+    state_topic: "pv/PV3/PV001001DEV/inverter/alarms"
+    value_template: "{{ 'ON' if value_json.grid_freq_over_limit == '1' else 'OFF' }}"
+    icon: mdi:sine-wave
+
+  - name: "PV3 Alarm Grid Voltage Under"
+    unique_id: pv3_alarm_grid_voltage_under
+    state_topic: "pv/PV3/PV001001DEV/inverter/alarms"
+    value_template: "{{ 'ON' if value_json.grid_voltage_under_limit == '1' else 'OFF' }}"
+    icon: mdi:flash-triangle-outline
+
+  - name: "PV3 Alarm Grid Voltage Over"
+    unique_id: pv3_alarm_grid_voltage_over
+    state_topic: "pv/PV3/PV001001DEV/inverter/alarms"
+    value_template: "{{ 'ON' if value_json.grid_voltage_over_limit == '1' else 'OFF' }}"
+    icon: mdi:flash-triangle
+
+  - name: "PV3 Alarm Feeding Voltage Over"
+    unique_id: pv3_alarm_feeding_voltage_over
+    state_topic: "pv/PV3/PV001001DEV/inverter/alarms"
+    value_template: "{{ 'ON' if value_json.feeding_av_voltage_over == '1' else 'OFF' }}"
+    icon: mdi:flash-alert
+
+  - name: "PV3 Alarm Ground Loss"
+    unique_id: pv3_alarm_ground_loss
+    state_topic: "pv/PV3/PV001001DEV/inverter/alarms"
+    value_template: "{{ 'ON' if value_json.ground_loss == '1' else 'OFF' }}"
+    icon: mdi:electric-switch-closed
+
+  - name: "PV3 Alarm External Flash Fail"
+    unique_id: pv3_alarm_external_flash_fail
+    state_topic: "pv/PV3/PV001001DEV/inverter/alarms"
+    value_template: "{{ 'ON' if value_json.external_flash_fail == '1' else 'OFF' }}"
+    icon: mdi:memory
+
+  - name: "PV3 Alarm Battery Under"
+    unique_id: pv3_alarm_battery_under
+    state_topic: "pv/PV3/PV001001DEV/inverter/alarms"
+    value_template: "{{ 'ON' if value_json.battery_under == '1' else 'OFF' }}"
+    icon: mdi:battery-outline
+
+  - name: "PV3 Alarm Overload"
+    unique_id: pv3_alarm_overload
+    state_topic: "pv/PV3/PV001001DEV/inverter/alarms"
+    value_template: "{{ 'ON' if value_json.overload == '1' else 'OFF' }}"
+    icon: mdi:flash-alert
+
+  - name: "PV3 Alarm Islanding Detect"
+    unique_id: pv3_alarm_islanding_detect
+    state_topic: "pv/PV3/PV001001DEV/inverter/alarms"
+    value_template: "{{ 'ON' if value_json.islanding_detect == '1' else 'OFF' }}"
+    icon: mdi:island
+
+  - name: "PV3 Alarm No Battery"
+    unique_id: pv3_alarm_no_battery
+    state_topic: "pv/PV3/PV001001DEV/inverter/alarms"
+    value_template: "{{ 'ON' if value_json.no_battery == '1' else 'OFF' }}"
+    icon: mdi:battery-off
+
+  - name: "PV3 Alarm Over Temperature"
+    unique_id: pv3_alarm_over_temperature
+    state_topic: "pv/PV3/PV001001DEV/inverter/alarms"
+    value_template: "{{ 'ON' if value_json.over_temperature == '1' else 'OFF' }}"
+    icon: mdi:thermometer-alert
+
+  - name: "PV3 Warnings Summary"
+    unique_id: pv3_warnings_summary
+    state_topic: "pv/PV3/PV001001DEV/inverter/alarms"
+    value_template: "{{ value_json.warnings_summary }}"
+    icon: mdi:alert-outline

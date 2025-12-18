@@ -1,0 +1,33 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Secrets - never commit these!
+secrets.yaml
+.env
+*.pem
+*.key
+
+# Home Assistant
+home-assistant.log
+*.db
+*.db-shm
+*.db-wal
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.env/
+
+# Temporary files
+*.tmp
+*.bak
+*.orig

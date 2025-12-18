@@ -1,0 +1,243 @@
+# Pylontech Battery Sensors for mqtt.yaml
+# Append these to your existing sensor: section in mqtt.yaml
+# Topic: pv/PV3/PV001001DEV/pylontech/info
+# Each message is a single-element array, filter by measurement + type
+
+  # =======================
+  # STATE OF HEALTH
+  # =======================
+  - name: "PV3 Battery SOH"
+    unique_id: pv3_battery_soh_corrected
+    state_topic: "pv/PV3/PV001001DEV/pylontech/info"
+    value_template: >
+      {% set item = value_json[0] if value_json is iterable and value_json | length > 0 else {} %}
+      {% if item.measurement == 'StateOfHealth' and item.type == 'Avg' %}
+        {{ item.value }}
+      {% else %}
+        {{ states('sensor.pv3_battery_soh') | default('unknown') }}
+      {% endif %}
+    unit_of_measurement: "%"
+    icon: mdi:battery-heart-variant
+
+  - name: "PV3 Battery SOH Min"
+    unique_id: pv3_battery_soh_min
+    state_topic: "pv/PV3/PV001001DEV/pylontech/info"
+    value_template: >
+      {% set item = value_json[0] if value_json is iterable and value_json | length > 0 else {} %}
+      {% if item.measurement == 'StateOfHealth' and item.type == 'Min' %}
+        {{ item.value }}
+      {% else %}
+        {{ states('sensor.pv3_battery_soh_min') | default('unknown') }}
+      {% endif %}
+    unit_of_measurement: "%"
+    icon: mdi:battery-heart-variant
+
+  # =======================
+  # CYCLE COUNT
+  # =======================
+  - name: "PV3 Battery Cycles Avg"
+    unique_id: pv3_battery_cycles_avg
+    state_topic: "pv/PV3/PV001001DEV/pylontech/info"
+    value_template: >
+      {% set item = value_json[0] if value_json is iterable and value_json | length > 0 else {} %}
+      {% if item.measurement == 'CycleNumber' and item.type == 'Avg' %}
+        {{ item.value }}
+      {% else %}
+        {{ states('sensor.pv3_battery_cycles_avg') | default('unknown') }}
+      {% endif %}
+    icon: mdi:battery-sync
+    state_class: total_increasing
+
+  - name: "PV3 Battery Cycles Max"
+    unique_id: pv3_battery_cycles_max
+    state_topic: "pv/PV3/PV001001DEV/pylontech/info"
+    value_template: >
+      {% set item = value_json[0] if value_json is iterable and value_json | length > 0 else {} %}
+      {% if item.measurement == 'CycleNumber' and item.type == 'Max' %}
+        {{ item.value }}
+      {% else %}
+        {{ states('sensor.pv3_battery_cycles_max') | default('unknown') }}
+      {% endif %}
+    icon: mdi:battery-sync
+    state_class: total_increasing
+
+  # =======================
+  # CELL VOLTAGES
+  # =======================
+  - name: "PV3 Cell Voltage Max"
+    unique_id: pv3_cell_voltage_max
+    state_topic: "pv/PV3/PV001001DEV/pylontech/info"
+    value_template: >
+      {% set item = value_json[0] if value_json is iterable and value_json | length > 0 else {} %}
+      {% if item.measurement == 'CellVoltage' and item.type == 'Max' %}
+        {{ item.value }}
+      {% else %}
+        {{ states('sensor.pv3_cell_voltage_max') | default('unknown') }}
+      {% endif %}
+    unit_of_measurement: "mV"
+    device_class: voltage
+    state_class: measurement
+    icon: mdi:battery-plus
+
+  - name: "PV3 Cell Voltage Min"
+    unique_id: pv3_cell_voltage_min
+    state_topic: "pv/PV3/PV001001DEV/pylontech/info"
+    value_template: >
+      {% set item = value_json[0] if value_json is iterable and value_json | length > 0 else {} %}
+      {% if item.measurement == 'CellVoltage' and item.type == 'Min' %}
+        {{ item.value }}
+      {% else %}
+        {{ states('sensor.pv3_cell_voltage_min') | default('unknown') }}
+      {% endif %}
+    unit_of_measurement: "mV"
+    device_class: voltage
+    state_class: measurement
+    icon: mdi:battery-minus
+
+  # =======================
+  # CELL TEMPERATURES (mC -> °C)
+  # =======================
+  - name: "PV3 Cell Temp Avg"
+    unique_id: pv3_cell_temp_avg
+    state_topic: "pv/PV3/PV001001DEV/pylontech/info"
+    value_template: >
+      {% set item = value_json[0] if value_json is iterable and value_json | length > 0 else {} %}
+      {% if item.measurement == 'CellTemperature' and item.type == 'Avg' %}
+        {{ (item.value / 1000) | round(1) }}
+      {% else %}
+        {{ states('sensor.pv3_cell_temp_avg') | default('unknown') }}
+      {% endif %}
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+
+  - name: "PV3 Cell Temp Max"
+    unique_id: pv3_cell_temp_max
+    state_topic: "pv/PV3/PV001001DEV/pylontech/info"
+    value_template: >
+      {% set item = value_json[0] if value_json is iterable and value_json | length > 0 else {} %}
+      {% if item.measurement == 'CellTemperature' and item.type == 'Max' %}
+        {{ (item.value / 1000) | round(1) }}
+      {% else %}
+        {{ states('sensor.pv3_cell_temp_max') | default('unknown') }}
+      {% endif %}
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+
+  - name: "PV3 Cell Temp Min"
+    unique_id: pv3_cell_temp_min
+    state_topic: "pv/PV3/PV001001DEV/pylontech/info"
+    value_template: >
+      {% set item = value_json[0] if value_json is iterable and value_json | length > 0 else {} %}
+      {% if item.measurement == 'CellTemperature' and item.type == 'Min' %}
+        {{ (item.value / 1000) | round(1) }}
+      {% else %}
+        {{ states('sensor.pv3_cell_temp_min') | default('unknown') }}
+      {% endif %}
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+
+  # =======================
+  # BMS TEMPERATURE
+  # =======================
+  - name: "PV3 BMS Temp Avg"
+    unique_id: pv3_bms_temp_avg
+    state_topic: "pv/PV3/PV001001DEV/pylontech/info"
+    value_template: >
+      {% set item = value_json[0] if value_json is iterable and value_json | length > 0 else {} %}
+      {% if item.measurement == 'BMSTemperature' and item.type == 'Avg' %}
+        {{ (item.value / 1000) | round(1) }}
+      {% else %}
+        {{ states('sensor.pv3_bms_temp_avg') | default('unknown') }}
+      {% endif %}
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+
+  # =======================
+  # MODULE VOLTAGE & CURRENT
+  # =======================
+  - name: "PV3 Module Voltage Avg"
+    unique_id: pv3_module_voltage_avg
+    state_topic: "pv/PV3/PV001001DEV/pylontech/info"
+    value_template: >
+      {% set item = value_json[0] if value_json is iterable and value_json | length > 0 else {} %}
+      {% if item.measurement == 'ModuleVoltage' and item.type == 'Avg' %}
+        {{ (item.value / 1000) | round(2) }}
+      {% else %}
+        {{ states('sensor.pv3_module_voltage_avg') | default('unknown') }}
+      {% endif %}
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+
+  - name: "PV3 Battery Current Total"
+    unique_id: pv3_battery_current_total
+    state_topic: "pv/PV3/PV001001DEV/pylontech/info"
+    value_template: >
+      {% set item = value_json[0] if value_json is iterable and value_json | length > 0 else {} %}
+      {% if item.measurement == 'Current' and item.type == 'Total' %}
+        {{ (item.value / 1000) | round(2) }}
+      {% else %}
+        {{ states('sensor.pv3_battery_current_total') | default('unknown') }}
+      {% endif %}
+    unit_of_measurement: "A"
+    device_class: current
+    state_class: measurement
+
+  # =======================
+  # CHARGE/DISCHARGE LIMITS
+  # =======================
+  - name: "PV3 Charge Voltage Limit"
+    unique_id: pv3_charge_voltage_limit
+    state_topic: "pv/PV3/PV001001DEV/pylontech/info"
+    value_template: >
+      {% set item = value_json[0] if value_json is iterable and value_json | length > 0 else {} %}
+      {% if item.measurement == 'ChargeVoltageLimit' %}
+        {{ (item.value / 1000) | round(2) }}
+      {% else %}
+        {{ states('sensor.pv3_charge_voltage_limit') | default('unknown') }}
+      {% endif %}
+    unit_of_measurement: "V"
+    device_class: voltage
+
+  - name: "PV3 Discharge Voltage Limit"
+    unique_id: pv3_discharge_voltage_limit
+    state_topic: "pv/PV3/PV001001DEV/pylontech/info"
+    value_template: >
+      {% set item = value_json[0] if value_json is iterable and value_json | length > 0 else {} %}
+      {% if item.measurement == 'DischargeVoltageLimit' %}
+        {{ (item.value / 1000) | round(2) }}
+      {% else %}
+        {{ states('sensor.pv3_discharge_voltage_limit') | default('unknown') }}
+      {% endif %}
+    unit_of_measurement: "V"
+    device_class: voltage
+
+  - name: "PV3 Charge Current Limit"
+    unique_id: pv3_charge_current_limit
+    state_topic: "pv/PV3/PV001001DEV/pylontech/info"
+    value_template: >
+      {% set item = value_json[0] if value_json is iterable and value_json | length > 0 else {} %}
+      {% if item.measurement == 'ChargeCurrentLimit' %}
+        {{ (item.value / 1000) | round(1) }}
+      {% else %}
+        {{ states('sensor.pv3_charge_current_limit') | default('unknown') }}
+      {% endif %}
+    unit_of_measurement: "A"
+    device_class: current
+
+  - name: "PV3 Discharge Current Limit"
+    unique_id: pv3_discharge_current_limit
+    state_topic: "pv/PV3/PV001001DEV/pylontech/info"
+    value_template: >
+      {% set item = value_json[0] if value_json is iterable and value_json | length > 0 else {} %}
+      {% if item.measurement == 'DischargeCurrentLimit' %}
+        {{ (item.value / 1000 * -1) | round(1) }}
+      {% else %}
+        {{ states('sensor.pv3_discharge_current_limit') | default('unknown') }}
+      {% endif %}
+    unit_of_measurement: "A"
+    device_class: current

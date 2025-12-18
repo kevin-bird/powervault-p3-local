@@ -1,0 +1,271 @@
+# Powervault P3 MQTT Sensors for Home Assistant
+# Add to your mqtt.yaml configuration
+# Replace 192.168.1.215 with your P3's IP address
+
+mqtt:
+  sensor:
+    # =======================
+    # BATTERY STATE OF CHARGE
+    # =======================
+    - name: "PV3 Battery SoC"
+      unique_id: pv3_battery_soc
+      state_topic: "pv/PV3/PV001001DEV/bms/soc"
+      value_template: "{{ value_json.usable_soc | float / 100 }}"
+      unit_of_measurement: "%"
+      device_class: battery
+      state_class: measurement
+
+    # =======================
+    # BATTERY (Inverter Reported)
+    # =======================
+    - name: "P3 Battery Voltage"
+      unique_id: p3_battery_voltage_v
+      state_topic: "pv/PV3/PV001001DEV/inverter/measurements"
+      value_template: >
+        {{ ((value_json
+              | selectattr('channel','eq','BATTERY')
+              | selectattr('measurement','eq','Voltage')
+              | map(attribute='value') | list | first | default(0)) | float(0) / 1000) | round(2) }}
+      unit_of_measurement: "V"
+      device_class: voltage
+      state_class: measurement
+
+    - name: "P3 Battery Current"
+      unique_id: p3_battery_current_a
+      state_topic: "pv/PV3/PV001001DEV/inverter/measurements"
+      value_template: >
+        {{ ((value_json
+              | selectattr('channel','eq','BATTERY')
+              | selectattr('measurement','eq','ChargeCurrent')
+              | map(attribute='value') | list | first | default(0)) | float(0) / 1000) | round(3) }}
+      unit_of_measurement: "A"
+      device_class: current
+      state_class: measurement
+
+    - name: "P3 Battery Capacity"
+      unique_id: p3_battery_capacity_pct
+      state_topic: "pv/PV3/PV001001DEV/inverter/measurements"
+      value_template: >
+        {{ (value_json
+              | selectattr('channel','eq','BATTERY')
+              | selectattr('measurement','eq','Capacity')
+              | map(attribute='value') | list | first | default(0)) | float(0) }}
+      unit_of_measurement: "%"
+      device_class: battery
+      state_class: measurement
+
+    # =======================
+    # GRID
+    # =======================
+    - name: "PV3 Grid Active Power"
+      unique_id: pv3_grid_active_power_w
+      state_topic: "pv/PV3/PV001001DEV/inverter/measurements"
+      value_template: >
+        {{ ((value_json
+              | selectattr('channel','eq','GRID')
+              | selectattr('measurement','eq','Power')
+              | selectattr('type','eq','Active')
+              | map(attribute='value') | list | first | default(0)) | float(0) / 1000) | round(1) }}
+      unit_of_measurement: "W"
+      device_class: power
+      state_class: measurement
+
+    - name: "PV3 Grid Voltage"
+      unique_id: pv3_grid_voltage_v
+      state_topic: "pv/PV3/PV001001DEV/inverter/measurements"
+      value_template: >
+        {{ ((value_json
+              | selectattr('channel','eq','GRID')
+              | selectattr('measurement','eq','Voltage')
+              | selectattr('type','eq','Ac')
+              | map(attribute='value') | list | first | default(0)) | float(0) / 1000) | round(1) }}
+      unit_of_measurement: "V"
+      device_class: voltage
+      state_class: measurement
+
+    - name: "PV3 Grid Frequency"
+      unique_id: pv3_grid_frequency_hz
+      state_topic: "pv/PV3/PV001001DEV/inverter/measurements"
+      value_template: >
+        {{ ((value_json
+              | selectattr('channel','eq','GRID')
+              | selectattr('measurement','eq','Frequency')
+              | map(attribute='value') | list | first | default(0)) | float(0) / 1000) | round(2) }}
+      unit_of_measurement: "Hz"
+      device_class: frequency
+      state_class: measurement
+
+    # =======================
+    # INVERTER CHARGE
+    # =======================
+    - name: "PV3 Inverter Charge Power"
+      unique_id: pv3_inverter_charge_power_w
+      state_topic: "pv/PV3/PV001001DEV/inverter/charge"
+      value_template: "{{ value_json.power | float(0) }}"
+      unit_of_measurement: "W"
+      device_class: power
+      state_class: measurement
+
+    # =======================
+    # FFR MEASUREMENTS (CT Clamps)
+    # =======================
+    - name: "PV3 Local Active Power"
+      unique_id: pv3_local_active_power_3
+      state_topic: "pv/PV3/PV001001DEV/ffr/measurements"
+      value_template: >
+        {{ ((value_json
+              | selectattr('channel','eq','LOCAL')
+              | selectattr('measurement','eq','Power')
+              | selectattr('type','eq','Active')
+              | map(attribute='value') | list | first | default(0)) | float(0) / 1000) | round(1) }}
+      unit_of_measurement: "W"
+      device_class: power
+      state_class: measurement
+
+    - name: "PV3 House Active Power"
+      unique_id: pv3_house_active_power_3
+      state_topic: "pv/PV3/PV001001DEV/ffr/measurements"
+      value_template: >
+        {{ ((value_json
+              | selectattr('channel','eq','HOUSE')
+              | selectattr('measurement','eq','Power')
+              | selectattr('type','eq','Active')
+              | map(attribute='value') | list | first | default(0)) | float(0) / 1000) | round(1) }}
+      unit_of_measurement: "W"
+      device_class: power
+      state_class: measurement
+
+    - name: "PV3 AUX1 Apparent Power"
+      unique_id: pv3_aux1_apparent_power_2
+      state_topic: "pv/PV3/PV001001DEV/ffr/measurements"
+      value_template: >
+        {{ ((value_json
+              | selectattr('channel','eq','AUX1')
+              | selectattr('measurement','eq','Power')
+              | selectattr('type','eq','Active')
+              | map(attribute='value') | list | first | default(0)) | float(0) / 1000) | round(1) }}
+      unit_of_measurement: "VA"
+      device_class: apparent_power
+      state_class: measurement
+
+    # =======================
+    # EPS STATUS
+    # =======================
+    - name: "PV3 EPS Grid Loss"
+      unique_id: pv3_eps_grid_loss
+      state_topic: "pv/PV3/PV001001DEV/eps/status"
+      value_template: "{{ value_json.grid_loss | default(0) }}"
+      icon: mdi:transmission-tower-off
+
+    # =======================
+    # SCHEDULE
+    # =======================
+    - name: "PV3 Schedule Event"
+      unique_id: pv3_schedule_event
+      state_topic: "pv/PV3/PV001001DEV/schedule/event"
+      value_template: >
+        {% set events = {0: 'Idle', 1: 'Charge', 2: 'Discharge', 3: 'Force Charge', 4: 'Force Discharge'} %}
+        {{ events.get(value_json.event | int, 'Event ' ~ value_json.event) }}
+      icon: mdi:calendar-clock
+
+    - name: "PV3 Schedule Setpoint"
+      unique_id: pv3_schedule_setpoint
+      state_topic: "pv/PV3/PV001001DEV/schedule/event"
+      value_template: "{{ value_json.setpoint | default(0) }}"
+      unit_of_measurement: "W"
+      device_class: power
+      state_class: measurement
+      icon: mdi:target
+
+    # =======================
+    # INVERTER TEMPERATURES
+    # =======================
+    - name: "PV3 Inverter Temp"
+      unique_id: pv3_inverter_temp
+      state_topic: "pv/PV3/PV001001DEV/inverter/alarms"
+      value_template: "{{ value_json.inverter_temperature | default(0) | float }}"
+      unit_of_measurement: "°C"
+      device_class: temperature
+      state_class: measurement
+
+    - name: "PV3 Boost Temp"
+      unique_id: pv3_boost_temp
+      state_topic: "pv/PV3/PV001001DEV/inverter/alarms"
+      value_template: "{{ value_json.boost_temperature | default(0) | float }}"
+      unit_of_measurement: "°C"
+      device_class: temperature
+      state_class: measurement
+
+    - name: "PV3 Inner Temp"
+      unique_id: pv3_inner_temp
+      state_topic: "pv/PV3/PV001001DEV/inverter/alarms"
+      value_template: "{{ value_json.inner_temperature | default(0) | float }}"
+      unit_of_measurement: "°C"
+      device_class: temperature
+      state_class: measurement
+
+    # =======================
+    # ALARM COUNT & LIST
+    # =======================
+    - name: "PV3 Alarm Count"
+      unique_id: pv3_alarm_count
+      state_topic: "pv/PV3/PV001001DEV/inverter/alarms"
+      value_template: >
+        {% set ns = namespace(count=0) %}
+        {% for key, val in value_json.items() %}
+          {% if val == '1' %}
+            {% set ns.count = ns.count + 1 %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.count }}
+      icon: mdi:alert-circle
+
+    - name: "PV3 Alarm List"
+      unique_id: pv3_alarm_list
+      state_topic: "pv/PV3/PV001001DEV/inverter/alarms"
+      value_template: >
+        {% set ns = namespace(alarms=[]) %}
+        {% set exclude = ['timestamp', 'warnings_summary', 'inverter_temperature', 'boost_temperature', 'inner_temperature'] %}
+        {% for key, val in value_json.items() %}
+          {% if val == '1' and key not in exclude %}
+            {% set ns.alarms = ns.alarms + [key | replace('_', ' ') | title] %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.alarms | join(', ') if ns.alarms else 'None' }}
+      icon: mdi:alert-circle-outline
+
+    # =======================
+    # SAFETY CHECK
+    # =======================
+    - name: "PV3 Battery Power Rating"
+      unique_id: pv3_battery_power_rating
+      state_topic: "pv/PV3/PV001001DEV/safetycheck/measurements"
+      value_template: >
+        {{ ((value_json
+              | selectattr('measurement','eq','PowerRating')
+              | selectattr('type','eq','Battery')
+              | map(attribute='value') | list | first | default(0)) | float(0) / 1000) | round(0) }}
+      unit_of_measurement: "W"
+      device_class: power
+
+    - name: "PV3 Max Charge Power"
+      unique_id: pv3_max_charge_power
+      state_topic: "pv/PV3/PV001001DEV/safetycheck/measurements"
+      value_template: >
+        {{ ((value_json
+              | selectattr('measurement','eq','ChgPower')
+              | selectattr('type','eq','Max')
+              | map(attribute='value') | list | first | default(0)) | float(0) / 1000) | round(0) }}
+      unit_of_measurement: "W"
+      device_class: power
+
+    - name: "PV3 Max Discharge Power"
+      unique_id: pv3_max_discharge_power
+      state_topic: "pv/PV3/PV001001DEV/safetycheck/measurements"
+      value_template: >
+        {{ ((value_json
+              | selectattr('measurement','eq','DchgPower')
+              | selectattr('type','eq','Max')
+              | map(attribute='value') | list | first | default(0)) | float(0) / 1000 * -1) | round(0) }}
+      unit_of_measurement: "W"
+      device_class: power
