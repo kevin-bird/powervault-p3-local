@@ -39,15 +39,15 @@ body {
 /* Card styles */
 @layer components {
   .card {
-    @apply bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-4 shadow-lg;
+    @apply bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-4 shadow-lg transition-all;
   }
   
   .card-header {
-    @apply flex items-center justify-between mb-4;
+    @apply flex items-center justify-between;
   }
   
   .card-title {
-    @apply text-lg font-semibold text-slate-100;
+    @apply text-base font-semibold text-slate-100;
   }
   
   .metric-value {
@@ -72,6 +72,58 @@ body {
   
   .status-offline {
     @apply bg-status-offline;
+  }
+}
+
+/* Animations */
+@keyframes slide-in-from-top {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-in {
+  animation: slide-in-from-top 200ms ease-out;
+}
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  .card {
+    @apply p-3;
+  }
+  
+  .card-title {
+    @apply text-sm;
+  }
+  
+  .metric-label {
+    @apply text-xs;
+  }
+}
+
+/* Touch target minimum size */
+button, a {
+  min-width: 44px;
+  min-height: 44px;
+  @apply flex items-center justify-center;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .animate-pulse,
+  .animate-pulse-slow {
+    animation: none !important;
   }
 }
 

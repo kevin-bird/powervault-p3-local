@@ -29,6 +29,11 @@ export function useWebSocket(deviceId: string): UseWebSocketReturn {
 
     ws.onmessage = (event) => {
       try {
+        // Handle text messages (like "pong")
+        if (event.data === 'pong') {
+          return
+        }
+        
         const message = JSON.parse(event.data) as WebSocketMessage
         if (message.type !== 'heartbeat') {
           setLastMessage(message)

@@ -1,0 +1,49 @@
+Section,Dashboard Label,Database Metric,Current Value,Unit,MQTT Topic,MQTT Field,Status,Notes
+Power Flow,Grid Power,grid_power,-406.464,W,ffr/measurements,LOCAL Power Active,OK,Negative = exporting
+Power Flow,Grid Voltage,grid_voltage,225.8,V,inverter/measurements,GRID Voltage Ac,OK,
+Power Flow,Grid State,calculated,Exporting,,,,OK,Derived from grid_power sign
+Power Flow,House Power,house_power,11.736,W,ffr/measurements,HOUSE Power Active,OK,
+Power Flow,Battery SoC,soc,97.0,%,bms/soc,StateOfCharge,OK,
+Power Flow,Battery Voltage,battery_voltage,49.8,V,inverter/measurements,BATTERY Voltage,OK,
+Power Flow,Battery Power,battery_power,591.0,W,inverter/charge,power,OK,Positive = discharging
+Power Flow,Battery State,calculated,Discharging,,,,OK,Derived from battery_power
+Power Flow,Solar Power,solar_power,null,W,,,N/A,No solar panels
+Power Flow,Schedule,schedule_event,0.0,,schedule/event,event,OK,0=Idle
+Power Flow,Health,soh,92,%,pylontech/info,StateOfHealth Avg,OK,
+Battery Status,Current,battery_current,0.0,A,inverter/measurements,BATTERY ChargeCurrent,ISSUE,Shows 0A - incorrect
+Battery Status,Current Total,battery_current_total,-10.23,A,pylontech/info,Current Total,OK,More accurate - use this instead
+Battery Status,Usable Capacity,battery_capacity,77,%,inverter/measurements,BATTERY Capacity,OK,
+Battery Status,Max Charge Power,max_charge_power,null,W,m4/maxpower,ChgPower,MISSING,Not being collected
+Battery Status,Max Discharge Power,max_discharge_power,null,W,m4/maxpower,DchgPower,MISSING,Not being collected
+Battery Health,State of Health,soh,92,%,pylontech/info,StateOfHealth Avg,OK,
+Battery Health,SOH Min,soh_min,92,%,pylontech/info,StateOfHealth Min,OK,
+Battery Health,Cycles Avg,cycle_count_avg,844,cycles,pylontech/info,CycleNumber Avg,OK,
+Battery Health,Cycles Max,cycle_count_max,877,cycles,pylontech/info,CycleNumber Max,OK,
+Battery Health,Cell Voltage Max,cell_voltage_max,3317,mV,pylontech/info,CellVoltage Max,OK,
+Battery Health,Cell Voltage Min,cell_voltage_min,3315,mV,pylontech/info,CellVoltage Min,OK,
+Battery Health,Voltage Spread,calculated,2,mV,,,OK,max - min
+Battery Health,Module Voltage,module_voltage_avg,49.746,V,pylontech/info,ModuleVoltage Avg,OK,
+Temperature,Cell Temp Avg,cell_temp_avg,20.1,C,pylontech/info,CellTemperature Avg,OK,
+Temperature,Cell Temp Max,cell_temp_max,20.9,C,pylontech/info,CellTemperature Max,OK,
+Temperature,Cell Temp Min,cell_temp_min,19.4,C,pylontech/info,CellTemperature Min,OK,
+Temperature,BMS Temp Avg,bms_temp_avg,20.3,C,pylontech/info,BMSTemperature Avg,OK,
+Temperature,BMS Temp Max,bms_temp_max,20.8,C,pylontech/info,BMSTemperature Max,OK,
+Temperature,Inverter Temp,inverter_temp,null,C,inverter/alarms,inverter_temperature,MISSING,Topic not publishing
+Temperature,Boost Temp,boost_temp,null,C,inverter/alarms,boost_temperature,MISSING,Topic not publishing
+Temperature,Inner Temp,inner_temp,null,C,inverter/alarms,inner_temperature,MISSING,Topic not publishing
+Power Limits,Max Charge (M4),max_charge_power,null,W,m4/maxpower,ChgPower,MISSING,Not being collected
+Power Limits,Max Discharge (M4),max_discharge_power,null,W,m4/maxpower,DchgPower,MISSING,Not being collected
+Power Limits,Charge Voltage Limit,charge_voltage_limit,53.25,V,pylontech/info,ChargeVoltageLimit,OK,
+Power Limits,Discharge Voltage Limit,discharge_voltage_limit,45.0,V,pylontech/info,DischargeVoltageLimit,OK,
+Power Limits,Charge Current Limit,charge_current_limit,60.0,A,pylontech/info,ChargeCurrentLimit,OK,
+Power Limits,Discharge Current Limit,discharge_current_limit,150.0,A,pylontech/info,DischargeCurrentLimit,OK,
+Inverter,AC Output,grid_power,406.464,W,ffr/measurements,LOCAL Power Active (abs),OK,Absolute value
+Inverter,Grid CT,grid_power,-406.464,W,ffr/measurements,LOCAL Power Active,OK,
+Inverter,Battery Charge Rate,battery_power,591,W,inverter/charge,power,OK,
+Inverter,AUX1 Power,aux_power,-1.48,W,ffr/measurements,AUX1 Power Active,OK,
+Inverter,Grid Frequency,grid_frequency,50.0,Hz,inverter/measurements,GRID Frequency,OK,
+EPS,EPS Mode,eps_mode,null,,eps/status,Mode,MISSING,Not being collected
+EPS,EPS Reserve,eps_reserve,null,%,eps/status,Reserve,MISSING,Not being collected
+Schedule,Schedule Event,schedule_event,0.0,,schedule/event,event,OK,0=Idle
+Schedule,Schedule Setpoint,schedule_setpoint,0.0,W,schedule/event,setpoint,OK,
+

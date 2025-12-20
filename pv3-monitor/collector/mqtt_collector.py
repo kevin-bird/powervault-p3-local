@@ -440,18 +440,19 @@ class PV3Collector:
             if value is None or measurement != "Power" or item.get("type") != "Active":
                 continue
 
-            # Map FFR channels to metrics
+            # Map FFR channels to metrics (SWAPPED: LOCAL=house, HOUSE=grid)
             if channel == "LOCAL":
-                # Grid CT (positive = import, negative = export)
+                # LOCAL CT actually measures house consumption
                 measurements.append({
-                    "metric_name": "grid_power",
+                    "metric_name": "house_power",
                     "metric_value": value / 1000.0,  # mW to W
                     "unit": "W",
                     "source_topic": topic,
                 })
             elif channel == "HOUSE":
+                # HOUSE CT actually measures grid (positive = import, negative = export)
                 measurements.append({
-                    "metric_name": "house_power",
+                    "metric_name": "grid_power",
                     "metric_value": value / 1000.0,
                     "unit": "W",
                     "source_topic": topic,
