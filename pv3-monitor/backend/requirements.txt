@@ -1,0 +1,21 @@
+# FastAPI and server
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+
+# Database
+sqlalchemy[asyncio]==2.0.36
+asyncpg==0.30.0
+alembic==1.14.0
+
+# MQTT
+paho-mqtt==2.1.0
+
+# Settings and validation
+pydantic==2.10.3
+pydantic-settings==2.6.1
+
+# WebSockets
+websockets==14.1
+
+# Utilities
+python-dateutil==2.9.0

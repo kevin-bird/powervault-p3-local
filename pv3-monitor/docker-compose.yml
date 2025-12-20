@@ -1,0 +1,79 @@
+services:
+  db:
+    image: timescale/timescaledb:latest-pg16
+    container_name: pv3_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-pv3monitor}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pv3monitor_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-pv3monitor}
+    volumes:
+      - pv3_pgdata:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pv3monitor} -d ${POSTGRES_DB:-pv3monitor}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pv3_network
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: pv3_mosquitto
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - pv3_mosquitto_data:/mosquitto/data
+      - pv3_mosquitto_log:/mosquitto/log
+    # Ports not exposed - backend connects directly to P3 at 192.168.1.215:1883
+    networks:
+      - pv3_network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: pv3_backend
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://pv3monitor:pv3monitor_dev_password@db:5432/pv3monitor}
+      MQTT_HOST: ${MQTT_HOST:-192.168.1.215}
+      MQTT_PORT: ${MQTT_PORT:-1883}
+      P3_DEVICE_ID: ${P3_DEVICE_ID:-PV001001DEV}
+    ports:
+      - "8800:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+    networks:
+      - pv3_network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: pv3_frontend
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+      VITE_WS_URL: ${VITE_WS_URL:-ws://localhost:8000}
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - pv3_network
+
+volumes:
+  pv3_pgdata:
+  pv3_mosquitto_data:
+  pv3_mosquitto_log:
+
+networks:
+  pv3_network:
+    driver: bridge

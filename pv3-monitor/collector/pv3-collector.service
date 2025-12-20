@@ -1,0 +1,19 @@
+[Unit]
+Description=PV3 MQTT Data Collector
+After=network.target
+
+[Service]
+Type=simple
+User=kevin
+WorkingDirectory=/home/kevin/pv3-monitor/collector
+Environment="MQTT_HOST=192.168.1.215"
+Environment="MQTT_PORT=1883"
+Environment="P3_DEVICE_ID=PV001001DEV"
+Environment="API_URL=http://localhost:8800"
+ExecStart=/usr/bin/python3 /home/kevin/pv3-monitor/collector/mqtt_collector.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+
