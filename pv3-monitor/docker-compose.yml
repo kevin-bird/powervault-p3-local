@@ -39,6 +39,7 @@ services:
       MQTT_HOST: ${MQTT_HOST:-192.168.1.215}
       MQTT_PORT: ${MQTT_PORT:-1883}
       P3_DEVICE_ID: ${P3_DEVICE_ID:-PV001001DEV}
+      SETTINGS_FILE: /app/runtime_settings.json
     ports:
       - "8800:8000"
     volumes:
@@ -57,8 +58,8 @@ services:
       dockerfile: Dockerfile
     container_name: pv3_frontend
     environment:
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
-      VITE_WS_URL: ${VITE_WS_URL:-ws://localhost:8000}
+      VITE_API_URL: ${VITE_API_URL:-http://192.168.1.6:8800}
+      VITE_WS_URL: ${VITE_WS_URL:-ws://192.168.1.6:8800}
     ports:
       - "5173:5173"
     volumes:
@@ -66,6 +67,22 @@ services:
       - /app/node_modules
     depends_on:
       - backend
+    networks:
+      - pv3_network
+
+  collector:
+    build:
+      context: ./collector
+      dockerfile: Dockerfile
+    container_name: pv3_collector
+    environment:
+      MQTT_HOST: ${MQTT_HOST:-192.168.1.215}
+      MQTT_PORT: ${MQTT_PORT:-1883}
+      P3_DEVICE_ID: ${P3_DEVICE_ID:-PV001001DEV}
+      API_URL: http://pv3_backend:8000
+    depends_on:
+      - backend
+    restart: unless-stopped
     networks:
       - pv3_network
 

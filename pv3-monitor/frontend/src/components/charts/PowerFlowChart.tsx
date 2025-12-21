@@ -16,42 +16,22 @@ interface PowerFlowChartProps {
 }
 
 export function PowerFlowChart({ data, timeRange = 'today' }: PowerFlowChartProps) {
-  // For "today", fill missing hours with zero values
   const fillTodayData = (records: MeasurementRecord[]) => {
-    if (timeRange !== 'today' || records.length === 0) {
-      return records
-    }
+    if (timeRange !== 'today' || records.length === 0) return records
 
     const now = new Date()
     const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    const filled: MeasurementRecord[] = []
-    
-    // Create hourly slots from midnight to now
-    for (let hour = 0; hour <= now.getHours(); hour++) {
-      const slotTime = new Date(midnight.getTime() + hour * 60 * 60 * 1000)
-      const existing = records.find(r => r.timestamp.getHours() === hour)
-      
-      if (existing) {
-        filled.push(existing)
-      } else {
-        // Fill with zero values for missing hours
-        filled.push({
-          timestamp: slotTime,
-          grid_power: 0,
-          house_power: 0,
-          battery_power: 0,
-          battery_soc: 0,
-          battery_voltage: 0,
-          grid_voltage: 0,
-          cell_temp_avg: null,
-          cell_temp_max: null,
-          cell_temp_min: null,
-          bms_temp: null,
-        })
-      }
-    }
-    
-    return filled
+    const first = records[0]
+
+    if (first.timestamp.getTime() <= midnight.getTime()) return records
+
+    return [
+      {
+        ...first,
+        timestamp: midnight,
+      },
+      ...records,
+    ]
   }
 
   const filledData = fillTodayData(data)
@@ -62,8 +42,8 @@ export function PowerFlowChart({ data, timeRange = 'today' }: PowerFlowChartProp
     timestamp: record.timestamp,
     gridImport: record.grid_power > 0 ? record.grid_power / 1000 : 0,
     gridExport: record.grid_power < 0 ? Math.abs(record.grid_power) / 1000 : 0,
-    batteryDischarge: record.battery_power > 0 ? record.battery_power / 1000 : 0,
-    batteryCharge: record.battery_power < 0 ? Math.abs(record.battery_power) / 1000 : 0,
+    batteryCharge: (record.battery_power ?? 0) > 0 ? (record.battery_power ?? 0) / 1000 : 0,
+    batteryDischarge: (record.battery_power ?? 0) < 0 ? Math.abs((record.battery_power ?? 0) / 1000) : 0,
   }))
 
   if (chartData.length === 0) {
@@ -96,6 +76,7 @@ export function PowerFlowChart({ data, timeRange = 'today' }: PowerFlowChartProp
             fontSize: '12px',
           }}
           labelStyle={{ color: '#e2e8f0' }}
+          formatter={(value: number) => `${value.toFixed(1)} kW`}
         />
         <Legend 
           wrapperStyle={{ fontSize: '12px' }}

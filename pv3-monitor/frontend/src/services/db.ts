@@ -7,6 +7,7 @@ export interface MeasurementRecord {
   house_power: number
   battery_power: number
   battery_soc: number
+  battery_usable: number
   battery_voltage: number
   grid_voltage: number
   cell_temp_avg: number | null

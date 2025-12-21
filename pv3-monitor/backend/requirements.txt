@@ -19,3 +19,4 @@ websockets==14.1
 
 # Utilities
 python-dateutil==2.9.0
+asyncio-mqtt==0.16.2

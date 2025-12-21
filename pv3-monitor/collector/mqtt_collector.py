@@ -119,6 +119,10 @@ class PV3Collector:
                 self.handle_maxpower(payload, msg.topic)
             elif topic_suffix == "eps/status":
                 self.handle_eps_status(payload, msg.topic)
+            elif topic_suffix == "eps_schedule/event":
+                self.handle_eps_schedule(payload, msg.topic)
+            elif topic_suffix == "safetycheck/state":
+                self.handle_safetycheck(payload, msg.topic)
 
         except Exception as e:
             logger.error(f"Error processing message from {msg.topic}: {e}", exc_info=True)
@@ -550,6 +554,60 @@ class PV3Collector:
                 "unit": "",
                 "source_topic": topic,
             })
+        
+        if measurements:
+            self.post_measurements(measurements, topic)
+
+    def handle_eps_schedule(self, payload: dict | list, topic: str):
+        """Handle eps_schedule/event messages."""
+        if isinstance(payload, list):
+            if not payload:
+                return
+            payload = payload[0]
+        
+        measurements = []
+        
+        reserved_soc = payload.get("reserved_soc")
+        event = payload.get("event")
+        
+        if reserved_soc is not None:
+            measurements.append({
+                "metric_name": "eps_schedule_reserve",
+                "metric_value": float(reserved_soc),
+                "unit": "%",
+                "source_topic": topic,
+            })
+        if event is not None:
+            # Convert on/off to 1/0
+            event_value = 1.0 if event == "on" else 0.0
+            measurements.append({
+                "metric_name": "eps_schedule_event",
+                "metric_value": event_value,
+                "unit": "",
+                "source_topic": topic,
+            })
+        
+        if measurements:
+            self.post_measurements(measurements, topic)
+
+    def handle_safetycheck(self, payload: dict | list, topic: str):
+        """Handle safetycheck/state messages."""
+        if isinstance(payload, list):
+            if not payload:
+                return
+            payload = payload[0]
+        
+        measurements = []
+        
+        # Extract any power limits or safety check values
+        for key, value in payload.items():
+            if isinstance(value, (int, float)):
+                measurements.append({
+                    "metric_name": f"safetycheck_{key}",
+                    "metric_value": float(value),
+                    "unit": "",
+                    "source_topic": topic,
+                })
         
         if measurements:
             self.post_measurements(measurements, topic)

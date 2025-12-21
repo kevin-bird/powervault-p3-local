@@ -1,8 +1,13 @@
 import type { Device } from '../types/device'
-import type { CurrentMeasurements, MeasurementHistory } from '../types/measurements'
+import type {
+  CurrentMeasurements,
+  GroupedHistoryRecord,
+  HistoryResolution,
+  MeasurementHistory,
+} from '../types/measurements'
 import type { AlarmStatus } from '../types/alarm'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_URL = import.meta.env.VITE_API_URL || 'http://192.168.1.6:8800'
 
 class ApiService {
   private baseUrl: string
@@ -54,6 +59,22 @@ class ApiService {
       end: end.toISOString(),
     })
     return this.request(`/api/devices/${deviceId}/history?${params}`)
+  }
+
+  async getHistoryGrouped(
+    deviceId: string,
+    metrics: string[],
+    start: Date,
+    end: Date,
+    resolution: HistoryResolution
+  ): Promise<GroupedHistoryRecord[]> {
+    const params = new URLSearchParams({
+      metrics: metrics.join(','),
+      start: start.toISOString(),
+      end: end.toISOString(),
+      resolution,
+    })
+    return this.request(`/api/devices/${deviceId}/history/grouped?${params}`)
   }
 
   // Alarms

@@ -4,17 +4,20 @@ import { Dashboard } from './components/dashboard/Dashboard'
 import { useWebSocket } from './hooks/useWebSocket'
 import { useDeviceData } from './hooks/useDeviceData'
 import { useDataCapture } from './hooks/useDataCapture'
+import { useSettings } from './hooks/useSettings'
 import type { CurrentMeasurements } from './types/measurements'
 
 function App() {
   const [deviceId] = useState('PV001001DEV')
   const { connected, lastMessage } = useWebSocket(deviceId)
   const { data, loading, error, refetch } = useDeviceData(deviceId)
+  const { settings, loading: settingsLoading } = useSettings()
   const [measurements, setMeasurements] = useState<CurrentMeasurements | null>(null)
   const [capturePaused, setCapturePaused] = useState(false)
+  const isServerMode = !settingsLoading && settings?.collection_mode === 'server'
   
   // Capture data to IndexedDB every minute
-  const { recordCount } = useDataCapture({ measurements, paused: capturePaused })
+  const { recordCount } = useDataCapture({ measurements, paused: capturePaused || isServerMode })
 
   // Update measurements from API data
   useEffect(() => {
@@ -58,7 +61,7 @@ function App() {
             deviceId={deviceId}
             measurements={measurements}
             loading={loading}
-            recordCount={recordCount}
+            recordCount={isServerMode ? 0 : recordCount}
             capturePaused={capturePaused}
             onPauseToggle={() => setCapturePaused(!capturePaused)}
           />

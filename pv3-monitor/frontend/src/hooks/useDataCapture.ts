@@ -26,6 +26,7 @@ export function useDataCapture({ measurements, paused = false }: UseDataCaptureO
         house_power: measurements.house_power ?? 0,
         battery_power: measurements.battery_power ?? 0,
         battery_soc: measurements.soc ?? 0,
+        battery_usable: measurements.battery_capacity ?? measurements.soc ?? 0,
         battery_voltage: measurements.battery_voltage ?? 0,
         grid_voltage: measurements.grid_voltage ?? 0,
         cell_temp_avg: measurements.cell_temp_avg,

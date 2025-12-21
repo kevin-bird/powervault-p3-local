@@ -66,3 +66,17 @@ export interface MeasurementHistory {
   source_topic: string | null
 }
 
+export type HistoryResolution = '1m' | '15m' | '1h'
+
+export type GroupedHistoryRecord = {
+  timestamp: string
+  grid_power: number | null
+  house_power: number | null
+  battery_power: number | null
+  battery_soc: number | null
+  battery_usable: number | null
+  battery_voltage: number | null
+  grid_voltage: number | null
+  cell_temp_avg: number | null
+}
+

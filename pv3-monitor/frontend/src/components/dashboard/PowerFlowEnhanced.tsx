@@ -1,4 +1,5 @@
 import { Home, Zap, Sun } from 'lucide-react'
+import { BatteryTooltip } from '../common/BatteryTooltip'
 import type { CurrentMeasurements } from '../../types/measurements'
 
 interface BatteryIconProps {
@@ -23,8 +24,6 @@ function BatteryVertical({ soc, usableCapacity, charging, discharging }: Battery
   const reservedColor = '#fb923c'  // orange for reserved/unusable portion
   const borderColor = charging ? '#3b82f6' : discharging ? '#22c55e' : '#64748b'
 
-  const tooltipContent = `SoC: ${soc.toFixed(0)}% · Usable: ${usableCapacity.toFixed(0)}% · Reserved: ${(soc - usableCapacity).toFixed(0)}%`
-
   return (
     <div className="relative inline-block">
       {/* Battery Cap */}
@@ -35,9 +34,8 @@ function BatteryVertical({ soc, usableCapacity, charging, discharging }: Battery
       
       {/* Battery Body */}
       <div 
-        className="relative w-12 h-20 rounded border-2 overflow-hidden bg-slate-800/50 cursor-help"
+        className="relative w-12 h-20 rounded border-2 overflow-hidden bg-slate-800/50 cursor-pointer"
         style={{ borderColor }}
-        title={tooltipContent}
       >
         {/* Usable Capacity (bottom layer - bright green) */}
         <div 
@@ -82,20 +80,29 @@ export function PowerFlowEnhanced({ measurements, scheduleName }: PowerFlowEnhan
   }
 
   const gridPower = measurements?.grid_power ?? 0
-  const housePower = measurements?.house_power ?? 0
-  const batteryPower = measurements?.battery_power ?? 0
+  const batteryChargePower = measurements?.house_power ?? 0  // MQTT house_power is actually battery charge rate
+  const actualHousePower = gridPower - batteryChargePower    // Calculate real house consumption
   const solarPower = measurements?.solar_power ?? 0
   const soc = measurements?.soc ?? 0
   const usableCapacity = measurements?.battery_capacity ?? soc
   const batteryVoltage = measurements?.battery_voltage ?? 0
+  const batteryCurrent = measurements?.battery_current ?? measurements?.battery_current_total ?? 0
   const gridVoltage = measurements?.grid_voltage ?? 0
   const soh = measurements?.soh ?? 0
 
+  const getFlowOpacity = (watts: number): number => {
+    const absWatts = Math.abs(watts)
+    if (absWatts === 0) return 0.2
+    if (absWatts <= 20) return 0.2
+    if (absWatts >= 3000) return 1
+    return 0.2 + ((absWatts - 20) / (3000 - 20)) * 0.8
+  }
+
   // Determine states
-  const gridImporting = gridPower > 10
-  const gridExporting = gridPower < -10
-  const batteryCharging = batteryPower < -10
-  const batteryDischarging = batteryPower > 10
+  const gridImporting = gridPower > 0
+  const gridExporting = gridPower < 0
+  const batteryCharging = batteryChargePower > 0      // positive = charging
+  const batteryDischarging = batteryChargePower < 0  // negative = discharging
   const hasSolar = solarPower > 10
 
   const getBatteryState = (): string => {
@@ -159,9 +166,19 @@ export function PowerFlowEnhanced({ measurements, scheduleName }: PowerFlowEnhan
         {/* Flow Indicator Grid->House */}
         <div className="flex items-center">
           {gridImporting ? (
-            <div className="text-purple-400 text-2xl font-bold animate-pulse">→</div>
+            <div
+              className="text-purple-400 text-2xl font-bold"
+              style={{ opacity: getFlowOpacity(gridPower) }}
+            >
+              →
+            </div>
           ) : gridExporting ? (
-            <div className="text-orange-400 text-2xl font-bold animate-pulse">←</div>
+            <div
+              className="text-orange-400 text-2xl font-bold"
+              style={{ opacity: getFlowOpacity(gridPower) }}
+            >
+              ←
+            </div>
           ) : (
             <div className="text-slate-600 text-xl">-</div>
           )}
@@ -174,7 +191,7 @@ export function PowerFlowEnhanced({ measurements, scheduleName }: PowerFlowEnhan
           </div>
           <span className="mt-2 text-sm text-slate-400 font-medium">House</span>
           <span className="font-mono text-xl font-bold text-slate-200">
-            {formatPower(housePower)}
+            {formatPower(actualHousePower)}
           </span>
           <span className="text-sm text-slate-500">Consuming</span>
         </div>
@@ -182,9 +199,19 @@ export function PowerFlowEnhanced({ measurements, scheduleName }: PowerFlowEnhan
         {/* Flow Indicator House->Battery */}
         <div className="flex items-center">
           {batteryDischarging ? (
-            <div className="text-green-400 text-2xl font-bold animate-pulse">←</div>
+            <div
+              className="text-green-400 text-2xl font-bold"
+              style={{ opacity: getFlowOpacity(batteryChargePower) }}
+            >
+              ←
+            </div>
           ) : batteryCharging ? (
-            <div className="text-blue-400 text-2xl font-bold animate-pulse">→</div>
+            <div
+              className="text-blue-400 text-2xl font-bold"
+              style={{ opacity: getFlowOpacity(batteryChargePower) }}
+            >
+              →
+            </div>
           ) : (
             <div className="text-slate-600 text-xl">-</div>
           )}
@@ -192,17 +219,30 @@ export function PowerFlowEnhanced({ measurements, scheduleName }: PowerFlowEnhan
 
         {/* Battery Node */}
         <div className="flex flex-col items-center flex-1">
-          <BatteryVertical 
+          <BatteryTooltip
             soc={soc}
-            usableCapacity={measurements?.battery_capacity ?? soc}
-            charging={batteryCharging}
-            discharging={batteryDischarging}
-          />
+            usableCapacity={usableCapacity}
+            voltage={batteryVoltage}
+            current={batteryCurrent}
+            state={getBatteryState()}
+          >
+            <BatteryVertical 
+              soc={soc}
+              usableCapacity={usableCapacity}
+              charging={batteryCharging}
+              discharging={batteryDischarging}
+            />
+          </BatteryTooltip>
           <span className="mt-2 text-sm text-slate-400">Battery</span>
           <span className={`font-mono text-xl font-bold ${
             soc > 50 ? 'text-green-400' : soc > 20 ? 'text-yellow-400' : 'text-red-400'
           }`}>
             {Math.round(soc)}%
+          </span>
+          <span className={`font-mono text-lg font-bold ${
+            batteryCharging ? 'text-blue-400' : batteryDischarging ? 'text-green-400' : 'text-slate-400'
+          }`}>
+            {formatPower(Math.abs(batteryChargePower))}
           </span>
           <span className="text-xs text-slate-400 font-mono">
             {batteryVoltage > 0 ? `${batteryVoltage.toFixed(1)}V` : '-'}

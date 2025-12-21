@@ -6,6 +6,7 @@ import { TemperatureCollapsible } from './TemperatureCollapsible'
 import { PowerLimitsCollapsible } from './PowerLimitsCollapsible'
 import { InverterDetailsCollapsible } from './InverterDetailsCollapsible'
 import { HistorySection } from '../charts/HistorySection'
+import { useAlarms } from '../../hooks/useAlarms'
 import type { CurrentMeasurements } from '../../types/measurements'
 
 interface DashboardProps {
@@ -17,7 +18,9 @@ interface DashboardProps {
   onPauseToggle: () => void
 }
 
-export function Dashboard({ measurements, loading, recordCount, capturePaused, onPauseToggle }: DashboardProps) {
+export function Dashboard({ deviceId, measurements, loading, recordCount, capturePaused, onPauseToggle }: DashboardProps) {
+  const { alarmStatus } = useAlarms(deviceId)
+  
   if (loading && !measurements) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -63,7 +66,11 @@ export function Dashboard({ measurements, loading, recordCount, capturePaused, o
         />
         
         {/* Alarms */}
-        <AlarmsCollapsible activeCount={0} alarmList={[]} />
+        <AlarmsCollapsible 
+          activeCount={alarmStatus?.active_count ?? 0}
+          alarmList={alarmStatus?.active_alarms ?? []}
+          allAlarms={alarmStatus?.all_alarms ?? {}}
+        />
         
         {/* Battery Status */}
         <BatteryStatusCollapsible measurements={measurements} />

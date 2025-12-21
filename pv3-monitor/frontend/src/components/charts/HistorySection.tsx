@@ -4,6 +4,9 @@ import { CollapsibleCard } from '../common/CollapsibleCard'
 import { PowerFlowChart } from './PowerFlowChart'
 import { SoCChart } from './SoCChart'
 import { getMeasurements, getStorageSize, exportToCSV, type MeasurementRecord } from '../../services/db'
+import { useSettings } from '../../hooks/useSettings'
+import { api } from '../../services/api'
+import type { HistoryResolution } from '../../types/measurements'
 
 type TimeRange = 'today' | 'yesterday' | '7days' | '30days' | 'custom'
 
@@ -14,22 +17,79 @@ interface HistorySectionProps {
 }
 
 export function HistorySection({ recordCount, paused, onPauseToggle }: HistorySectionProps) {
+  const { settings, loading: settingsLoading } = useSettings()
   const [timeRange, setTimeRange] = useState<TimeRange>('today')
   const [data, setData] = useState<MeasurementRecord[]>([])
   const [storageSize, setStorageSize] = useState(0)
   const [loading, setLoading] = useState(false)
+  const isServerMode = settings?.collection_mode === 'server'
 
   useEffect(() => {
+    if (settingsLoading) return
     loadData()
-    updateStorageSize()
-  }, [timeRange, recordCount])
+    if (!isServerMode) {
+      updateStorageSize()
+    }
+  }, [timeRange, isServerMode, settingsLoading])
+
+  useEffect(() => {
+    if (settingsLoading) return
+    if (!isServerMode) {
+      loadData()
+    }
+  }, [recordCount, isServerMode, settingsLoading])
+
+  const getResolution = (range: TimeRange): HistoryResolution => {
+    if (range === 'today' || range === 'yesterday') return '1m'
+    if (range === '7days') return '15m'
+    return '1h'
+  }
 
   const loadData = async () => {
     setLoading(true)
     try {
       const { start, end } = getTimeRangeDate(timeRange)
-      const measurements = await getMeasurements(start, end)
-      setData(measurements)
+      
+      if (isServerMode) {
+        const metrics = [
+          'soc',
+          'battery_capacity',
+          'grid_power',
+          'house_power',
+          'battery_power',
+          'battery_voltage',
+          'grid_voltage',
+          'cell_temp_avg',
+        ]
+        const serverData = await api.getHistoryGrouped(
+          'PV001001DEV',
+          metrics,
+          start,
+          end,
+          getResolution(timeRange)
+        )
+        
+        // Convert server format to MeasurementRecord format
+        const measurements: MeasurementRecord[] = serverData.map(record => ({
+          timestamp: new Date(record.timestamp),
+          grid_power: record.grid_power ?? 0,
+          house_power: record.house_power ?? 0,
+          battery_power: record.battery_power ?? 0,
+          battery_soc: record.battery_soc ?? 0,
+          battery_usable: record.battery_usable ?? 0,
+          battery_voltage: record.battery_voltage ?? 0,
+          grid_voltage: record.grid_voltage ?? 0,
+          cell_temp_avg: record.cell_temp_avg,
+          cell_temp_max: null,
+          cell_temp_min: null,
+          bms_temp: null,
+        }))
+        setData(measurements)
+      } else {
+        // Fetch from IndexedDB (browser mode)
+        const measurements = await getMeasurements(start, end)
+        setData(measurements)
+      }
     } catch (err) {
       console.error('Failed to load historical data:', err)
     } finally {
@@ -90,9 +150,9 @@ export function HistorySection({ recordCount, paused, onPauseToggle }: HistorySe
       }
 
       if (current.battery_power > 0) {
-        batteryDischarge += (current.battery_power / 1000) * intervalHours
+        batteryCharge += (current.battery_power / 1000) * intervalHours
       } else {
-        batteryCharge += Math.abs(current.battery_power / 1000) * intervalHours
+        batteryDischarge += Math.abs(current.battery_power / 1000) * intervalHours
       }
     }
 
@@ -112,7 +172,10 @@ export function HistorySection({ recordCount, paused, onPauseToggle }: HistorySe
   }
 
   const summary = calculateDailySummary()
-  const storageText = `${data.length} records • ${(storageSize / 1024 / 1024).toFixed(1)} MB`
+  const storageText = isServerMode
+    ? 'Server mode • live from backend'
+    : `${data.length} records • ${(storageSize / 1024 / 1024).toFixed(1)} MB`
+  const storageLabel = isServerMode ? storageText : `Storing locally • ${storageText}`
 
   return (
     <CollapsibleCard
@@ -171,7 +234,7 @@ export function HistorySection({ recordCount, paused, onPauseToggle }: HistorySe
             <div>
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm font-semibold text-slate-300">Power Flow</h3>
-                <span className="text-xs text-slate-400">Storing locally • {storageText}</span>
+                <span className="text-xs text-slate-400">{storageLabel}</span>
               </div>
               <PowerFlowChart data={data} timeRange={timeRange} />
             </div>
@@ -179,7 +242,7 @@ export function HistorySection({ recordCount, paused, onPauseToggle }: HistorySe
             {/* SoC Chart */}
             <div>
               <h3 className="text-sm font-semibold text-slate-300 mb-2">Battery State of Charge</h3>
-              <SoCChart data={data} />
+              <SoCChart data={data} timeRange={timeRange} />
             </div>
 
             {/* Daily Summary */}

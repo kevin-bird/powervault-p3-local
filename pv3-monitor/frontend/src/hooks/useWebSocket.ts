@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { WebSocketMessage } from '../types/websocket'
 
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000'
+const WS_URL = import.meta.env.VITE_WS_URL || 'ws://192.168.1.6:8800'
 
 interface UseWebSocketReturn {
   connected: boolean

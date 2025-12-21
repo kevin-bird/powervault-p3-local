@@ -35,6 +35,16 @@ export function EPSStatusCard({ measurements }: EPSStatusCardProps) {
           </div>
         )}
         
+        <div className="border-t border-slate-700 pt-2">
+          <p className="text-xs text-slate-500 mb-2">Cycles</p>
+          <div className="flex justify-between text-sm">
+            <span className="metric-label">Average / Maximum</span>
+            <span className="font-mono">
+              {measurements?.cycle_count_avg?.toFixed(0) ?? '-'} / {measurements?.cycle_count_max?.toFixed(0) ?? '-'}
+            </span>
+          </div>
+        </div>
+        
         {measurements?.eps_reserve != null && measurements?.soc != null && (
           <div className="mt-4">
             <div className="relative h-2 bg-slate-700 rounded-full overflow-hidden">
