@@ -1,4 +1,4 @@
-import { PowerFlowEnhanced } from './PowerFlowEnhanced'
+import { EnergyFlowDiagram } from '../energy-flow/EnergyFlowDiagram'
 import { AlarmsCollapsible } from './AlarmsCollapsible'
 import { BatteryStatusCollapsible } from './BatteryStatusCollapsible'
 import { BatteryHealthCollapsible } from './BatteryHealthCollapsible'
@@ -46,13 +46,24 @@ export function Dashboard({ deviceId, measurements, loading, recordCount, captur
     ? scheduleEventNames[Math.round(scheduleEvent)] ?? `Event ${Math.round(scheduleEvent)}`
     : '-'
 
+  const gridPower = measurements?.grid_power ?? 0
+  const batteryPower = measurements?.house_power ?? 0 // PV3 MQTT house_power is battery charge rate (positive charging)
+  const housePower = Math.max(0, gridPower - batteryPower) // consumption as positive watts
+  const socPercent = measurements?.soc ?? 0
+
   return (
     <div className="space-y-4">
       {/* Hero: Enhanced Power Flow */}
       <div className="card">
-        <PowerFlowEnhanced 
-          measurements={measurements}
+        <EnergyFlowDiagram
+          socPercent={socPercent}
+          gridPower={gridPower}
+          batteryPower={batteryPower}
+          housePower={housePower}
           scheduleName={scheduleName}
+          healthPercent={measurements?.soh ?? undefined}
+          gridVoltage={measurements?.grid_voltage ?? undefined}
+          batteryVoltage={measurements?.battery_voltage ?? undefined}
         />
       </div>
 
