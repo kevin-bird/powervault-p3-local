@@ -31,6 +31,8 @@ class ServerMQTTCollector:
         self.current_data = {}
         self.last_store = None
         self.messages_received = 0
+        self._last_soc: float | None = None
+        self._soc_outlier_threshold_percent = 1.0
         
     async def start(self):
         """Start the MQTT collector service."""
@@ -99,11 +101,35 @@ class ServerMQTTCollector:
     
     async def _parse_soc(self, payload):
         """Parse bms/soc messages."""
-        if isinstance(payload, list) and payload:
-            payload = payload[0]
-        value = payload.get("value")
-        if value is not None:
-            self.current_data["soc"] = value / 100.0
+        soc: float | None = None
+        if isinstance(payload, list):
+            for item in payload:
+                if isinstance(item, dict) and item.get("measurement") == "StateOfCharge":
+                    value = item.get("value")
+                    if value is not None:
+                        soc = value / 100.0
+                        break
+        elif isinstance(payload, dict):
+            usable_soc = payload.get("usable_soc") or payload.get("StateOfCharge")
+            if usable_soc is not None:
+                soc = usable_soc / 100.0
+
+        if soc is None:
+            return
+
+        if self._last_soc is not None and abs(soc - self._last_soc) > self._soc_outlier_threshold_percent:
+            logger.warning(
+                "SOC outlier detected: prev=%.2f%% new=%.2f%% (Δ=%.2f%%). Keeping previous SOC.",
+                self._last_soc,
+                soc,
+                abs(soc - self._last_soc),
+            )
+            self.current_data["soc_raw"] = soc
+            self.current_data["soc"] = self._last_soc
+            return
+
+        self._last_soc = soc
+        self.current_data["soc"] = soc
     
     async def _parse_inverter_measurements(self, payload):
         """Parse inverter/measurements."""

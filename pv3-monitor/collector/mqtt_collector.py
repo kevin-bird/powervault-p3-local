@@ -45,6 +45,11 @@ class PV3Collector:
         self.session = requests.Session()
         self.session.headers.update({"Content-Type": "application/json"})
         self.connected = False
+        self._last_soc: float | None = None
+
+        # Outlier filter: ignore any single SOC sample that jumps more than this many percentage points.
+        # Intended to smooth rare bad readings (~1 in 20) that are ~10% off.
+        self._soc_outlier_threshold_percent = 1.0
 
     def on_connect(
         self,
@@ -168,24 +173,86 @@ class PV3Collector:
                     if value is not None:
                         # Convert from integer (1100 = 11.00%)
                         soc = value / 100.0
-                        self.post_measurements([{
-                            "metric_name": "soc",
-                            "metric_value": soc,
-                            "unit": "%",
-                            "source_topic": topic,
-                        }], topic)
+                        if self._last_soc is not None and abs(soc - self._last_soc) > self._soc_outlier_threshold_percent:
+                            logger.warning(
+                                "SOC outlier detected: prev=%.2f%% new=%.2f%% (Δ=%.2f%%). Keeping previous SOC.",
+                                self._last_soc,
+                                soc,
+                                abs(soc - self._last_soc),
+                            )
+                            self.post_measurements(
+                                [
+                                    {
+                                        "metric_name": "soc_raw",
+                                        "metric_value": soc,
+                                        "unit": "%",
+                                        "source_topic": topic,
+                                    },
+                                    {
+                                        "metric_name": "soc",
+                                        "metric_value": self._last_soc,
+                                        "unit": "%",
+                                        "source_topic": topic,
+                                    },
+                                ],
+                                topic,
+                            )
+                        else:
+                            self._last_soc = soc
+                            self.post_measurements(
+                                [
+                                    {
+                                        "metric_name": "soc",
+                                        "metric_value": soc,
+                                        "unit": "%",
+                                        "source_topic": topic,
+                                    }
+                                ],
+                                topic,
+                            )
                     return
         else:
             # Legacy dict format support
             usable_soc = payload.get("usable_soc") or payload.get("StateOfCharge")
             if usable_soc is not None:
                 soc = usable_soc / 100.0
-                self.post_measurements([{
-                    "metric_name": "soc",
-                    "metric_value": soc,
-                    "unit": "%",
-                    "source_topic": topic,
-                }], topic)
+                if self._last_soc is not None and abs(soc - self._last_soc) > self._soc_outlier_threshold_percent:
+                    logger.warning(
+                        "SOC outlier detected (legacy): prev=%.2f%% new=%.2f%% (Δ=%.2f%%). Keeping previous SOC.",
+                        self._last_soc,
+                        soc,
+                        abs(soc - self._last_soc),
+                    )
+                    self.post_measurements(
+                        [
+                            {
+                                "metric_name": "soc_raw",
+                                "metric_value": soc,
+                                "unit": "%",
+                                "source_topic": topic,
+                            },
+                            {
+                                "metric_name": "soc",
+                                "metric_value": self._last_soc,
+                                "unit": "%",
+                                "source_topic": topic,
+                            },
+                        ],
+                        topic,
+                    )
+                else:
+                    self._last_soc = soc
+                    self.post_measurements(
+                        [
+                            {
+                                "metric_name": "soc",
+                                "metric_value": soc,
+                                "unit": "%",
+                                "source_topic": topic,
+                            }
+                        ],
+                        topic,
+                    )
 
     def handle_inverter_measurements(self, payload: list[dict], topic: str):
         """Handle inverter/measurements messages."""
