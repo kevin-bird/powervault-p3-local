@@ -16,44 +16,21 @@ import type { MeasurementRecord } from '../../services/db'
 interface SoCChartProps {
   data: MeasurementRecord[]
   timeRange?: string
+  start?: Date
+  end?: Date
 }
 
-export function SoCChart({ data, timeRange = 'today' }: SoCChartProps) {
-  // For "today", add midnight point to extend chart to start of day
-  const fillTodayData = (records: MeasurementRecord[]) => {
-    if (timeRange !== 'today' || records.length === 0) {
-      return records
-    }
+function formatUkTime(ms: number): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/London',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(new Date(ms))
+}
 
-    const now = new Date()
-    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    const firstRecord = records[0]
-    
-    // If first record is after midnight, add midnight point
-    if (firstRecord.timestamp > midnight) {
-      const midnightPoint: MeasurementRecord = {
-        timestamp: midnight,
-        grid_power: 0,
-        house_power: 0,
-        battery_power: 0,
-        battery_soc: firstRecord.battery_soc, // Use first known SoC
-        battery_voltage: firstRecord.battery_voltage,
-        grid_voltage: 0,
-        cell_temp_avg: null,
-        cell_temp_max: null,
-        cell_temp_min: null,
-        bms_temp: null,
-      }
-      return [midnightPoint, ...records]
-    }
-    
-    return records
-  }
-
-  const filledData = fillTodayData(data)
-  
-  const chartData = filledData.map(record => ({
-    time: record.timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+export function SoCChart({ data, timeRange = 'today', start, end }: SoCChartProps) {
+  const chartData = data.map(record => ({
     timestamp: record.timestamp.getTime(),
     soc: record.battery_soc,
     usable: record.battery_usable ?? record.battery_soc,
@@ -81,9 +58,12 @@ export function SoCChart({ data, timeRange = 'today' }: SoCChartProps) {
         <XAxis 
           dataKey="timestamp"
           type="number"
-          domain={['dataMin', 'dataMax']}
+          domain={[
+            start ? start.getTime() : 'dataMin',
+            end ? end.getTime() : 'dataMax',
+          ]}
           scale="time"
-          tickFormatter={(ts) => new Date(ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+          tickFormatter={formatUkTime}
           stroke="#9ca3af" 
           style={{ fontSize: '12px' }}
         />
@@ -101,11 +81,7 @@ export function SoCChart({ data, timeRange = 'today' }: SoCChartProps) {
             fontSize: '12px',
           }}
           labelStyle={{ color: '#e2e8f0' }}
-          labelFormatter={(value) => new Date(value).toLocaleTimeString('en-US', { 
-            hour: '2-digit', 
-            minute: '2-digit',
-            hour12: true 
-          })}
+          labelFormatter={(value) => formatUkTime(Number(value))}
         />
         <Legend 
           wrapperStyle={{ fontSize: '12px' }}

@@ -207,6 +207,7 @@ export function HistorySection({ recordCount, paused, onPauseToggle }: HistorySe
   const [storageSize, setStorageSize] = useState(0)
   const [loading, setLoading] = useState(false)
   const isServerMode = settings?.collection_mode === 'server'
+  const chartRange = getTimeRangeDate(timeRange)
 
   useEffect(() => {
     if (settingsLoading) return
@@ -532,13 +533,13 @@ export function HistorySection({ recordCount, paused, onPauseToggle }: HistorySe
                 <h3 className="text-sm font-semibold text-slate-300">Power Flow</h3>
                 <span className="text-xs text-slate-400">{storageLabel}</span>
               </div>
-              <PowerFlowChart data={data} timeRange={timeRange} />
+              <PowerFlowChart data={data} timeRange={timeRange} start={chartRange.start} end={chartRange.end} />
             </div>
 
             {/* SoC Chart */}
             <div>
               <h3 className="text-sm font-semibold text-slate-300 mb-2">Battery State of Charge</h3>
-              <SoCChart data={data} timeRange={timeRange} />
+              <SoCChart data={data} timeRange={timeRange} start={chartRange.start} end={chartRange.end} />
             </div>
 
             {/* Daily Summary */}

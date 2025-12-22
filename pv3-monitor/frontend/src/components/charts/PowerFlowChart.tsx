@@ -13,33 +13,23 @@ import type { MeasurementRecord } from '../../services/db'
 interface PowerFlowChartProps {
   data: MeasurementRecord[]
   timeRange?: string
+  start?: Date
+  end?: Date
 }
 
-export function PowerFlowChart({ data, timeRange = 'today' }: PowerFlowChartProps) {
-  const fillTodayData = (records: MeasurementRecord[]) => {
-    if (timeRange !== 'today' || records.length === 0) return records
+function formatUkTime(ms: number): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/London',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(new Date(ms))
+}
 
-    const now = new Date()
-    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    const first = records[0]
-
-    if (first.timestamp.getTime() <= midnight.getTime()) return records
-
-    return [
-      {
-        ...first,
-        timestamp: midnight,
-      },
-      ...records,
-    ]
-  }
-
-  const filledData = fillTodayData(data)
-  
+export function PowerFlowChart({ data, timeRange = 'today', start, end }: PowerFlowChartProps) {
   // Transform data for stacked area chart
-  const chartData = filledData.map(record => ({
-    time: record.timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-    timestamp: record.timestamp,
+  const chartData = data.map(record => ({
+    timestampMs: record.timestamp.getTime(),
     gridImport: record.grid_power > 0 ? record.grid_power / 1000 : 0,
     gridExport: record.grid_power < 0 ? Math.abs(record.grid_power) / 1000 : 0,
     batteryCharge: (record.battery_power ?? 0) > 0 ? (record.battery_power ?? 0) / 1000 : 0,
@@ -60,7 +50,14 @@ export function PowerFlowChart({ data, timeRange = 'today' }: PowerFlowChartProp
       <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
         <XAxis 
-          dataKey="time" 
+          dataKey="timestampMs"
+          type="number"
+          domain={[
+            start ? start.getTime() : 'dataMin',
+            end ? end.getTime() : 'dataMax',
+          ]}
+          scale="time"
+          tickFormatter={formatUkTime}
           stroke="#9ca3af" 
           style={{ fontSize: '12px' }}
         />
@@ -78,6 +75,7 @@ export function PowerFlowChart({ data, timeRange = 'today' }: PowerFlowChartProp
           }}
           labelStyle={{ color: '#e2e8f0' }}
           formatter={(value: number) => `${value.toFixed(1)} kW`}
+          labelFormatter={(value) => formatUkTime(Number(value))}
         />
         <Legend 
           wrapperStyle={{ fontSize: '12px' }}
