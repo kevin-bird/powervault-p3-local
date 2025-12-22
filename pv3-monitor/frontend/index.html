@@ -5,10 +5,19 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="PV3 Monitor - Powervault P3 Battery Monitoring Dashboard" />
+    <meta name="theme-color" content="#0f172a" />
     <title>PV3 Monitor</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+      /* Prevent white flash before CSS loads (dark mode baseline) */
+      html,
+      body {
+        background: #0f172a;
+        color: #e2e8f0;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
