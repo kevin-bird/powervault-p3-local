@@ -72,8 +72,22 @@ function toMinutes(timeHHmm: string): number {
   return hh * 60 + mm
 }
 
+function getMinutesInTimeZone(timestamp: Date, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(timestamp)
+
+  const hourPart = parts.find(p => p.type === 'hour')?.value ?? '0'
+  const minutePart = parts.find(p => p.type === 'minute')?.value ?? '0'
+  return Number(hourPart) * 60 + Number(minutePart)
+}
+
 function isLowRatePeriod(timestamp: Date, tariff: TariffConfig): boolean {
-  const timeValue = timestamp.getHours() * 60 + timestamp.getMinutes()
+  // Low-rate windows are in UK local time (including DST), not browser/server timezone.
+  const timeValue = getMinutesInTimeZone(timestamp, 'Europe/London')
   const start = toMinutes(tariff.lowRateStart)
   const end = toMinutes(tariff.lowRateEnd)
 
