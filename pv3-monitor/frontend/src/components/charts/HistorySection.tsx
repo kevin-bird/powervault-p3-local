@@ -242,6 +242,8 @@ export function HistorySection({ recordCount, paused, onPauseToggle }: HistorySe
           'house_power',
           'battery_power',
           'solar_power',
+          'solar_garden_room_power',
+          'solar_loft_power',
           'aux_power',
           'battery_voltage',
           'grid_voltage',
@@ -263,6 +265,8 @@ export function HistorySection({ recordCount, paused, onPauseToggle }: HistorySe
           battery_power: record.battery_power ?? 0,
           solar_power: record.solar_power ?? 0,
           aux_power: record.aux_power ?? 0,
+          solar_garden_room_power: record.solar_garden_room_power ?? 0,
+          solar_loft_power: record.solar_loft_power ?? 0,
           battery_soc: record.battery_soc ?? 0,
           battery_usable: record.battery_usable ?? 0,
           battery_voltage: record.battery_voltage ?? 0,
@@ -332,6 +336,10 @@ export function HistorySection({ recordCount, paused, onPauseToggle }: HistorySe
 
     let solarTotal = 0
     let solarAny = false
+    let solarGarden = 0
+    let solarLoft = 0
+    let solarGardenAny = false
+    let solarLoftAny = false
 
     let evCharging = 0
     let evAny = false
@@ -368,11 +376,28 @@ export function HistorySection({ recordCount, paused, onPauseToggle }: HistorySe
         solarAny = true
       }
 
+      const solarGardenPower = current.solar_garden_room_power ?? 0
+      if (solarGardenPower > 0) {
+        solarGarden += (solarGardenPower / 1000) * intervalHours
+        solarGardenAny = true
+      }
+
+      const solarLoftPower = current.solar_loft_power ?? 0
+      if (solarLoftPower > 0) {
+        solarLoft += (solarLoftPower / 1000) * intervalHours
+        solarLoftAny = true
+      }
+
       const auxPower = current.aux_power ?? 0
       if (auxPower > 50) {
         evCharging += (auxPower / 1000) * intervalHours
         evAny = true
       }
+    }
+
+    if (!solarAny && (solarGardenAny || solarLoftAny)) {
+      solarTotal = solarGarden + solarLoft
+      solarAny = true
     }
 
     const efficiencyPercent = batteryCharge > 0 ? (batteryDischarge / batteryCharge) * 100 : 0
@@ -411,8 +436,8 @@ export function HistorySection({ recordCount, paused, onPauseToggle }: HistorySe
       },
       solar: {
         totalKwh: solarAny ? solarTotal : null,
-        gardenRoomKwh: null,
-        loftKwh: null,
+        gardenRoomKwh: solarGardenAny ? solarGarden : null,
+        loftKwh: solarLoftAny ? solarLoft : null,
       },
       consumption: {
         houseTotalKwh: solarAny ? Math.max(0, houseTotal) : null,

@@ -8,6 +8,8 @@ export interface MeasurementRecord {
   battery_power: number
   solar_power?: number
   aux_power?: number
+  solar_garden_room_power?: number
+  solar_loft_power?: number
   battery_soc: number
   battery_usable: number
   battery_voltage: number

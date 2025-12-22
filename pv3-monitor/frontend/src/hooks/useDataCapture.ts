@@ -27,6 +27,8 @@ export function useDataCapture({ measurements, paused = false }: UseDataCaptureO
         battery_power: measurements.battery_power ?? 0,
         solar_power: measurements.solar_power ?? 0,
         aux_power: measurements.aux_power ?? 0,
+        solar_garden_room_power: measurements.solar_garden_room_power ?? 0,
+        solar_loft_power: measurements.solar_loft_power ?? 0,
         battery_soc: measurements.soc ?? 0,
         battery_usable: measurements.battery_capacity ?? measurements.soc ?? 0,
         battery_voltage: measurements.battery_voltage ?? 0,

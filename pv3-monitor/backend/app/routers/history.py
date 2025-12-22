@@ -8,6 +8,10 @@ from app.database import get_db
 router = APIRouter(prefix="/api/devices/{device_id}", tags=["history"])
 
 SOLAR_DEVICE_IDS = ("solar_garden_room", "solar_loft")
+SOLAR_METRIC_TO_DEVICE_ID = {
+    "solar_garden_room_power": "solar_garden_room",
+    "solar_loft_power": "solar_loft",
+}
 
 
 @router.get("/history/grouped")
@@ -94,7 +98,12 @@ order by latest.bucket_ts asc;
     )
 
     solar_by_bucket: dict[str, float] = {}
-    if "solar_power" in metric_list:
+    solar_garden_by_bucket: dict[str, float] = {}
+    solar_loft_by_bucket: dict[str, float] = {}
+    wants_solar_total = "solar_power" in metric_list
+    wants_solar_breakdown = any(m in metric_list for m in SOLAR_METRIC_TO_DEVICE_ID)
+
+    if wants_solar_total or wants_solar_breakdown:
         solar_query = text(
             f"""
 with filtered as (
@@ -119,9 +128,9 @@ latest as (
 )
 select
   latest.bucket_ts,
-  sum(greatest(latest.metric_value, 0)) as solar_w
+  latest.device_id,
+  greatest(latest.metric_value, 0) as solar_w
 from latest
-group by latest.bucket_ts
 order by latest.bucket_ts asc;
 """
         ).bindparams(bindparam("solar_device_ids", expanding=True))
@@ -135,8 +144,17 @@ order by latest.bucket_ts asc;
             },
         )
 
-        for bucket_ts, solar_w in solar_result.fetchall():
-            solar_by_bucket[bucket_ts.isoformat()] = float(solar_w or 0)
+        for bucket_ts, solar_device_id, solar_w in solar_result.fetchall():
+            key = bucket_ts.isoformat()
+            watts = float(solar_w or 0)
+
+            if solar_device_id == "solar_garden_room":
+                solar_garden_by_bucket[key] = watts
+            elif solar_device_id == "solar_loft":
+                solar_loft_by_bucket[key] = watts
+
+            if wants_solar_total:
+                solar_by_bucket[key] = solar_garden_by_bucket.get(key, 0) + solar_loft_by_bucket.get(key, 0)
 
     # Build records (one per bucket)
     records: dict[str, dict] = {}
@@ -149,6 +167,8 @@ order by latest.bucket_ts asc;
                 "house_power": None,
                 "battery_power": None,
                 "solar_power": None,
+                "solar_garden_room_power": None,
+                "solar_loft_power": None,
                 "aux_power": None,
                 "battery_soc": None,
                 "battery_usable": None,
@@ -167,9 +187,14 @@ order by latest.bucket_ts asc;
         elif metric_name in records[key]:
             records[key][metric_name] = metric_value
 
-    if solar_by_bucket:
+    if wants_solar_total or wants_solar_breakdown:
         for key, record in records.items():
-            record["solar_power"] = solar_by_bucket.get(key)
+            if wants_solar_total:
+                record["solar_power"] = solar_by_bucket.get(key)
+            if "solar_garden_room_power" in metric_list:
+                record["solar_garden_room_power"] = solar_garden_by_bucket.get(key)
+            if "solar_loft_power" in metric_list:
+                record["solar_loft_power"] = solar_loft_by_bucket.get(key)
 
     return [records[key] for key in sorted(records.keys())]
 
