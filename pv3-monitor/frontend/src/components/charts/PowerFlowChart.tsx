@@ -44,6 +44,7 @@ export function PowerFlowChart({ data, timeRange = 'today' }: PowerFlowChartProp
     gridExport: record.grid_power < 0 ? Math.abs(record.grid_power) / 1000 : 0,
     batteryCharge: (record.battery_power ?? 0) > 0 ? (record.battery_power ?? 0) / 1000 : 0,
     batteryDischarge: (record.battery_power ?? 0) < 0 ? Math.abs((record.battery_power ?? 0) / 1000) : 0,
+    solar: (record.solar_power ?? 0) > 0 ? (record.solar_power ?? 0) / 1000 : 0,
   }))
 
   if (chartData.length === 0) {
@@ -90,6 +91,15 @@ export function PowerFlowChart({ data, timeRange = 'today' }: PowerFlowChartProp
           fill="#8b5cf6"
           fillOpacity={0.6}
           name="Grid Import"
+        />
+        <Area
+          type="monotone"
+          dataKey="solar"
+          stackId="1"
+          stroke="#eab308"
+          fill="#eab308"
+          fillOpacity={0.55}
+          name="Solar"
         />
         <Area
           type="monotone"

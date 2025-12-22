@@ -7,6 +7,8 @@ from app.database import get_db
 
 router = APIRouter(prefix="/api/devices/{device_id}", tags=["history"])
 
+SOLAR_DEVICE_IDS = ("solar_garden_room", "solar_loft")
+
 
 @router.get("/history/grouped")
 async def get_history_grouped(
@@ -91,6 +93,51 @@ order by latest.bucket_ts asc;
         },
     )
 
+    solar_by_bucket: dict[str, float] = {}
+    if "solar_power" in metric_list:
+        solar_query = text(
+            f"""
+with filtered as (
+  select
+    {bucket_expr} as bucket_ts,
+    public.measurements.device_id,
+    public.measurements.metric_value,
+    public.measurements.timestamp
+  from public.measurements
+  where public.measurements.device_id in :solar_device_ids
+    and public.measurements.metric_name = 'active_power'
+    and public.measurements.timestamp >= :start
+    and public.measurements.timestamp <= :end
+),
+latest as (
+  select distinct on (filtered.bucket_ts, filtered.device_id)
+    filtered.bucket_ts,
+    filtered.device_id,
+    filtered.metric_value
+  from filtered
+  order by filtered.bucket_ts, filtered.device_id, filtered.timestamp desc
+)
+select
+  latest.bucket_ts,
+  sum(greatest(latest.metric_value, 0)) as solar_w
+from latest
+group by latest.bucket_ts
+order by latest.bucket_ts asc;
+"""
+        ).bindparams(bindparam("solar_device_ids", expanding=True))
+
+        solar_result = await db.execute(
+            solar_query,
+            {
+                "solar_device_ids": SOLAR_DEVICE_IDS,
+                "start": start,
+                "end": end,
+            },
+        )
+
+        for bucket_ts, solar_w in solar_result.fetchall():
+            solar_by_bucket[bucket_ts.isoformat()] = float(solar_w or 0)
+
     # Build records (one per bucket)
     records: dict[str, dict] = {}
     for bucket_ts, metric_name, metric_value in result.fetchall():
@@ -119,6 +166,10 @@ order by latest.bucket_ts asc;
             records[key]["battery_power"] = metric_value
         elif metric_name in records[key]:
             records[key][metric_name] = metric_value
+
+    if solar_by_bucket:
+        for key, record in records.items():
+            record["solar_power"] = solar_by_bucket.get(key)
 
     return [records[key] for key in sorted(records.keys())]
 
