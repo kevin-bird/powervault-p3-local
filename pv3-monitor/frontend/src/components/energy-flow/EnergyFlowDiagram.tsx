@@ -170,7 +170,7 @@ export function EnergyFlowDiagram({
   const fillY = layout.battery.y + layout.nodeRadius * 0.8 - fillHeight
   const batteryFillColour = socClamped > 60 ? '#22c55e' : socClamped > 30 ? '#eab308' : '#ef4444'
 
-  const formatKw = (power: number) => `${(Math.abs(power) / 1000).toFixed(1)} kW`
+  const formatKw = (power: number) => `${(Math.abs(power) / 1000).toFixed(2)} kW`
 
   const solarTotalKw = formatKw(solarPowerUsed)
   const solarGardenKw =
