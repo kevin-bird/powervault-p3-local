@@ -47,9 +47,16 @@ export function Dashboard({ deviceId, measurements, loading, recordCount, captur
     : '-'
 
   const gridPower = measurements?.grid_power ?? 0
-  const batteryPower = measurements?.house_power ?? 0 // PV3 MQTT house_power is battery charge rate (positive charging)
-  const housePower = Math.max(0, gridPower - batteryPower) // consumption as positive watts
+  // Diagram expects: batteryPower positive = discharging, negative = charging
+  // Current data: measurements.house_power is battery charge rate (positive charging)
+  const batteryPower = -(measurements?.house_power ?? 0)
+  const housePower = gridPower + batteryPower
   const socPercent = measurements?.soc ?? 0
+  const batteryCurrentAmps = measurements?.battery_current ?? measurements?.battery_current_total ?? undefined
+  const cycleCount = measurements?.cycle_count_avg ?? undefined
+  const solarPower = measurements?.solar_power ?? undefined
+  const solarGardenRoomPower = measurements?.solar_garden_room_power ?? undefined
+  const solarLoftPower = measurements?.solar_loft_power ?? undefined
 
   return (
     <div className="space-y-4">
@@ -60,10 +67,15 @@ export function Dashboard({ deviceId, measurements, loading, recordCount, captur
           gridPower={gridPower}
           batteryPower={batteryPower}
           housePower={housePower}
+          solarPower={solarPower}
+          solarGardenRoomPower={solarGardenRoomPower}
+          solarLoftPower={solarLoftPower}
           scheduleName={scheduleName}
           healthPercent={measurements?.soh ?? undefined}
           gridVoltage={measurements?.grid_voltage ?? undefined}
           batteryVoltage={measurements?.battery_voltage ?? undefined}
+          batteryCurrentAmps={batteryCurrentAmps}
+          cycleCount={cycleCount}
         />
       </div>
 

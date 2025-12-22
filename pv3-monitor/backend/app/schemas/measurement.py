@@ -76,6 +76,8 @@ class CurrentMeasurements(BaseModel):
     house_power: float | None = None
     solar_power: float | None = None
     aux_power: float | None = None
+    solar_garden_room_power: float | None = None
+    solar_loft_power: float | None = None
     
     # Grid
     grid_voltage: float | None = None

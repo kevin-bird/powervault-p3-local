@@ -12,6 +12,8 @@ from app.routers.websocket import broadcast_measurement_update
 
 router = APIRouter(prefix="/api/devices/{device_id}", tags=["measurements"])
 
+SOLAR_DEVICE_IDS = ("solar_garden_room", "solar_loft")
+
 
 @router.get("/current", response_model=CurrentMeasurements)
 async def get_current_measurements(
@@ -54,6 +56,43 @@ async def get_current_measurements(
     for m in measurements:
         if hasattr(current, m.metric_name):
             setattr(current, m.metric_name, m.metric_value)
+
+    # Include Enphase solar breakdown (Garden Room + Loft) when requesting the main PV device.
+    if device_id == "PV001001DEV":
+        solar_subquery = (
+            select(
+                Measurement.device_id,
+                func.max(Measurement.timestamp).label("max_ts"),
+            )
+            .where(Measurement.device_id.in_(SOLAR_DEVICE_IDS))
+            .where(Measurement.metric_name == "active_power")
+            .group_by(Measurement.device_id)
+            .subquery()
+        )
+
+        solar_result = await db.execute(
+            select(Measurement.device_id, Measurement.metric_value)
+            .join(
+                solar_subquery,
+                (Measurement.device_id == solar_subquery.c.device_id)
+                & (Measurement.timestamp == solar_subquery.c.max_ts),
+            )
+            .where(Measurement.metric_name == "active_power")
+        )
+
+        garden_room_w = 0.0
+        loft_w = 0.0
+        for solar_device_id, value in solar_result.fetchall():
+            watts = float(value)
+            watts_clamped = watts if watts > 0 else 0.0
+            if solar_device_id == "solar_garden_room":
+                garden_room_w = watts_clamped
+            elif solar_device_id == "solar_loft":
+                loft_w = watts_clamped
+
+        current.solar_garden_room_power = garden_room_w
+        current.solar_loft_power = loft_w
+        current.solar_power = garden_room_w + loft_w
 
     return current
 
