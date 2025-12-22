@@ -73,6 +73,8 @@ export type GroupedHistoryRecord = {
   grid_power: number | null
   house_power: number | null
   battery_power: number | null
+  solar_power: number | null
+  aux_power: number | null
   battery_soc: number | null
   battery_usable: number | null
   battery_voltage: number | null

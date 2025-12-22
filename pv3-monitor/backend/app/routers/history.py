@@ -101,6 +101,8 @@ order by latest.bucket_ts asc;
                 "grid_power": None,
                 "house_power": None,
                 "battery_power": None,
+                "solar_power": None,
+                "aux_power": None,
                 "battery_soc": None,
                 "battery_usable": None,
                 "battery_voltage": None,

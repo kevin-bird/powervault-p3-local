@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import type { ReactNode } from 'react'
 import { TrendingUp, Download, Pause, Play } from 'lucide-react'
 import { CollapsibleCard } from '../common/CollapsibleCard'
 import { PowerFlowChart } from './PowerFlowChart'
@@ -9,6 +10,138 @@ import { api } from '../../services/api'
 import type { HistoryResolution } from '../../types/measurements'
 
 type TimeRange = 'today' | 'yesterday' | '7days' | '30days' | 'custom'
+
+type TariffConfig = {
+  lowRatePerKwhPence: number
+  highRatePerKwhPence: number
+  exportRatePerKwhPence: number
+  standingChargePerDayPence: number
+  lowRateStart: string
+  lowRateEnd: string
+}
+
+const DEFAULT_TARIFF: TariffConfig = {
+  lowRatePerKwhPence: 6.67,
+  highRatePerKwhPence: 28.22,
+  exportRatePerKwhPence: 15.0,
+  standingChargePerDayPence: 44.84,
+  lowRateStart: '23:30',
+  lowRateEnd: '05:30',
+}
+
+type DailySummaryData = {
+  grid: {
+    importKwh: number
+    importLowRateKwh: number
+    importHighRateKwh: number
+    exportKwh: number
+  }
+  battery: {
+    chargeKwh: number
+    dischargeKwh: number
+    efficiencyPercent: number
+  }
+  solar: {
+    totalKwh: number | null
+    gardenRoomKwh: number | null
+    loftKwh: number | null
+  }
+  consumption: {
+    houseTotalKwh: number | null
+    evChargingKwh: number | null
+  }
+  costs: {
+    importTotal: number
+    importLowRate: number
+    importHighRate: number
+    standingCharge: number
+    exportCredit: number
+    netCost: number
+    savingsVsAllPeak: number
+  }
+}
+
+type SummaryCardColour = 'red' | 'blue' | 'yellow' | 'green' | 'slate'
+
+function poundsFromPence(pence: number): number {
+  return pence / 100
+}
+
+function toMinutes(timeHHmm: string): number {
+  const [hh, mm] = timeHHmm.split(':').map(v => Number(v))
+  return hh * 60 + mm
+}
+
+function isLowRatePeriod(timestamp: Date, tariff: TariffConfig): boolean {
+  const timeValue = timestamp.getHours() * 60 + timestamp.getMinutes()
+  const start = toMinutes(tariff.lowRateStart)
+  const end = toMinutes(tariff.lowRateEnd)
+
+  if (start === end) return false
+  if (start < end) return timeValue >= start && timeValue < end
+  return timeValue >= start || timeValue < end
+}
+
+function formatKwh(value: number | null): string {
+  return value === null ? '—' : `${value.toFixed(1)} kWh`
+}
+
+function formatPounds(value: number): string {
+  return `£${value.toFixed(2)}`
+}
+
+function colourClasses(colour: SummaryCardColour): string {
+  if (colour === 'red') return 'border-red-500 bg-red-500/10'
+  if (colour === 'blue') return 'border-blue-500 bg-blue-500/10'
+  if (colour === 'yellow') return 'border-yellow-500 bg-yellow-500/10'
+  if (colour === 'green') return 'border-green-500 bg-green-500/10'
+  return 'border-slate-600 bg-slate-700/30'
+}
+
+function SummaryCard({
+  title,
+  colour,
+  children,
+}: {
+  title: string
+  colour: SummaryCardColour
+  children: ReactNode
+}) {
+  return (
+    <div className={`rounded-lg border-l-4 p-4 ${colourClasses(colour)}`}>
+      <div className="mb-3">
+        <h4 className="text-sm font-semibold text-slate-100">{title}</h4>
+      </div>
+      <div className="space-y-1">{children}</div>
+    </div>
+  )
+}
+
+function SummaryRow({
+  label,
+  value,
+  className,
+}: {
+  label: string
+  value: string
+  className?: string
+}) {
+  return (
+    <div className={`flex items-center justify-between gap-2 ${className ?? ''}`}>
+      <span className="text-sm text-slate-400">{label}</span>
+      <span className="text-sm font-medium text-slate-100">{value}</span>
+    </div>
+  )
+}
+
+function SummarySubRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-2 pl-4">
+      <span className="text-xs text-slate-500">{label}</span>
+      <span className="text-xs text-slate-300">{value}</span>
+    </div>
+  )
+}
 
 interface HistorySectionProps {
   recordCount: number
@@ -57,6 +190,8 @@ export function HistorySection({ recordCount, paused, onPauseToggle }: HistorySe
           'grid_power',
           'house_power',
           'battery_power',
+          'solar_power',
+          'aux_power',
           'battery_voltage',
           'grid_voltage',
           'cell_temp_avg',
@@ -75,6 +210,8 @@ export function HistorySection({ recordCount, paused, onPauseToggle }: HistorySe
           grid_power: record.grid_power ?? 0,
           house_power: record.house_power ?? 0,
           battery_power: record.battery_power ?? 0,
+          solar_power: record.solar_power ?? 0,
+          aux_power: record.aux_power ?? 0,
           battery_soc: record.battery_soc ?? 0,
           battery_usable: record.battery_usable ?? 0,
           battery_voltage: record.battery_voltage ?? 0,
@@ -129,34 +266,117 @@ export function HistorySection({ recordCount, paused, onPauseToggle }: HistorySe
     }
   }
 
-  const calculateDailySummary = () => {
-    if (data.length === 0) return null
+  const calculateDailySummary = (): DailySummaryData | null => {
+    if (data.length < 2) return null
+
+    const tariff = DEFAULT_TARIFF
 
     let gridImport = 0
+    let gridImportLow = 0
+    let gridImportHigh = 0
     let gridExport = 0
+
     let batteryCharge = 0
     let batteryDischarge = 0
 
-    // Calculate energy by integrating power over time
+    let solarTotal = 0
+    let solarAny = false
+
+    let evCharging = 0
+    let evAny = false
+
     for (let i = 0; i < data.length - 1; i++) {
       const current = data[i]
       const next = data[i + 1]
       const intervalHours = (next.timestamp.getTime() - current.timestamp.getTime()) / (1000 * 60 * 60)
+      if (intervalHours <= 0) continue
 
-      if (current.grid_power > 0) {
-        gridImport += (current.grid_power / 1000) * intervalHours
-      } else {
-        gridExport += Math.abs(current.grid_power / 1000) * intervalHours
+      const gridPower = current.grid_power
+      if (gridPower > 0) {
+        const kwh = (gridPower / 1000) * intervalHours
+        gridImport += kwh
+        if (isLowRatePeriod(current.timestamp, tariff)) {
+          gridImportLow += kwh
+        } else {
+          gridImportHigh += kwh
+        }
+      } else if (gridPower < 0) {
+        gridExport += (Math.abs(gridPower) / 1000) * intervalHours
       }
 
-      if (current.battery_power > 0) {
-        batteryCharge += (current.battery_power / 1000) * intervalHours
-      } else {
-        batteryDischarge += Math.abs(current.battery_power / 1000) * intervalHours
+      const batteryPower = current.battery_power
+      if (batteryPower > 0) {
+        batteryCharge += (batteryPower / 1000) * intervalHours
+      } else if (batteryPower < 0) {
+        batteryDischarge += (Math.abs(batteryPower) / 1000) * intervalHours
+      }
+
+      const solarPower = current.solar_power ?? 0
+      if (solarPower > 0) {
+        solarTotal += (solarPower / 1000) * intervalHours
+        solarAny = true
+      }
+
+      const auxPower = current.aux_power ?? 0
+      if (auxPower > 50) {
+        evCharging += (auxPower / 1000) * intervalHours
+        evAny = true
       }
     }
 
-    return { gridImport, gridExport, batteryCharge, batteryDischarge }
+    const efficiencyPercent = batteryCharge > 0 ? (batteryDischarge / batteryCharge) * 100 : 0
+
+    const importLowRateCost = gridImportLow * poundsFromPence(tariff.lowRatePerKwhPence)
+    const importHighRateCost = gridImportHigh * poundsFromPence(tariff.highRatePerKwhPence)
+    const standingCharge = poundsFromPence(tariff.standingChargePerDayPence)
+    const importTotal = importLowRateCost + importHighRateCost + standingCharge
+
+    const exportCredit = gridExport * poundsFromPence(tariff.exportRatePerKwhPence)
+    const netCost = importTotal - exportCredit
+
+    const allPeakCost =
+      gridImport * poundsFromPence(tariff.highRatePerKwhPence) + standingCharge
+    const savingsVsAllPeak = allPeakCost - importTotal
+
+    const houseTotal =
+      gridImport +
+      (solarAny ? solarTotal : 0) +
+      batteryDischarge -
+      gridExport -
+      batteryCharge -
+      (evAny ? evCharging : 0)
+
+    return {
+      grid: {
+        importKwh: gridImport,
+        importLowRateKwh: gridImportLow,
+        importHighRateKwh: gridImportHigh,
+        exportKwh: gridExport,
+      },
+      battery: {
+        chargeKwh: batteryCharge,
+        dischargeKwh: batteryDischarge,
+        efficiencyPercent,
+      },
+      solar: {
+        totalKwh: solarAny ? solarTotal : null,
+        gardenRoomKwh: null,
+        loftKwh: null,
+      },
+      consumption: {
+        houseTotalKwh: solarAny ? Math.max(0, houseTotal) : null,
+        evChargingKwh: evAny ? evCharging : null,
+      },
+      costs: {
+        importTotal,
+        importLowRate: importLowRateCost,
+        importHighRate: importHighRateCost,
+        standingCharge,
+        exportCredit,
+        netCost,
+        savingsVsAllPeak,
+      },
+    }
   }
 
   const handleExport = async () => {
@@ -247,32 +467,91 @@ export function HistorySection({ recordCount, paused, onPauseToggle }: HistorySe
 
             {/* Daily Summary */}
             {summary && (
-              <div>
-                <h3 className="text-sm font-semibold text-slate-300 mb-3">Daily Summary</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className="bg-slate-700/30 rounded-lg p-3">
-                    <p className="text-xs text-slate-400 mb-1">Grid Import</p>
-                    <p className="text-lg font-mono font-semibold text-purple-400">
-                      {summary.gridImport.toFixed(1)} kWh
-                    </p>
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-slate-300">Daily Summary</h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <SummaryCard title="Grid" colour="red">
+                    <SummaryRow label="Import" value={formatKwh(summary.grid.importKwh)} />
+                    <SummarySubRow label="Low Rate" value={formatKwh(summary.grid.importLowRateKwh)} />
+                    <SummarySubRow label="High Rate" value={formatKwh(summary.grid.importHighRateKwh)} />
+                    <SummaryRow
+                      className="mt-2"
+                      label="Export"
+                      value={formatKwh(summary.grid.exportKwh)}
+                    />
+                  </SummaryCard>
+
+                  <SummaryCard title="Battery" colour="blue">
+                    <SummaryRow label="Charge" value={formatKwh(summary.battery.chargeKwh)} />
+                    <SummaryRow label="Discharge" value={formatKwh(summary.battery.dischargeKwh)} />
+                    <SummaryRow
+                      label="Efficiency"
+                      value={`${summary.battery.efficiencyPercent.toFixed(0)}%`}
+                    />
+                  </SummaryCard>
+
+                  <SummaryCard title="Solar" colour="yellow">
+                    <SummaryRow label="Generation" value={formatKwh(summary.solar.totalKwh)} />
+                    <SummarySubRow label="Garden Room" value={summary.solar.gardenRoomKwh === null ? 'Not tracked' : formatKwh(summary.solar.gardenRoomKwh)} />
+                    <SummarySubRow label="Loft" value={summary.solar.loftKwh === null ? 'Not tracked' : formatKwh(summary.solar.loftKwh)} />
+                  </SummaryCard>
+
+                  <SummaryCard title="Consumption" colour="green">
+                    <SummaryRow label="House Total" value={formatKwh(summary.consumption.houseTotalKwh)} />
+                    <SummaryRow label="EV Charging" value={formatKwh(summary.consumption.evChargingKwh)} />
+                  </SummaryCard>
+                </div>
+
+                <div className="rounded-lg border border-slate-700 bg-slate-800/40 p-4">
+                  <div className="flex items-center justify-between gap-4 mb-4">
+                    <h4 className="text-sm font-semibold text-slate-100">Costs</h4>
+                    <div className="text-xs text-slate-400">
+                      Low: {DEFAULT_TARIFF.lowRatePerKwhPence}p • High: {DEFAULT_TARIFF.highRatePerKwhPence}p • Export: {DEFAULT_TARIFF.exportRatePerKwhPence}p • Standing: {DEFAULT_TARIFF.standingChargePerDayPence}p/day
+                    </div>
                   </div>
-                  <div className="bg-slate-700/30 rounded-lg p-3">
-                    <p className="text-xs text-slate-400 mb-1">Grid Export</p>
-                    <p className="text-lg font-mono font-semibold text-orange-400">
-                      {summary.gridExport.toFixed(1)} kWh
-                    </p>
-                  </div>
-                  <div className="bg-slate-700/30 rounded-lg p-3">
-                    <p className="text-xs text-slate-400 mb-1">Battery Charge</p>
-                    <p className="text-lg font-mono font-semibold text-blue-400">
-                      {summary.batteryCharge.toFixed(1)} kWh
-                    </p>
-                  </div>
-                  <div className="bg-slate-700/30 rounded-lg p-3">
-                    <p className="text-xs text-slate-400 mb-1">Battery Discharge</p>
-                    <p className="text-lg font-mono font-semibold text-green-400">
-                      {summary.batteryDischarge.toFixed(1)} kWh
-                    </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                      <div className="text-xs text-slate-400 mb-2">Import Cost</div>
+                      <div className="text-2xl font-bold text-red-400">
+                        {formatPounds(summary.costs.importTotal)}
+                      </div>
+                      <div className="mt-2 space-y-1 text-xs text-slate-400">
+                        <div className="flex items-center justify-between gap-2">
+                          <span>Low Rate ({DEFAULT_TARIFF.lowRatePerKwhPence}p)</span>
+                          <span className="text-slate-200">{formatPounds(summary.costs.importLowRate)}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                          <span>High Rate ({DEFAULT_TARIFF.highRatePerKwhPence}p)</span>
+                          <span className="text-slate-200">{formatPounds(summary.costs.importHighRate)}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                          <span>Standing Charge</span>
+                          <span className="text-slate-200">{formatPounds(summary.costs.standingCharge)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-xs text-slate-400 mb-2">Export Credit</div>
+                      <div className="text-2xl font-bold text-green-400">
+                        {formatPounds(summary.costs.exportCredit)}
+                      </div>
+                      <div className="mt-2 text-xs text-slate-400">
+                        {summary.grid.exportKwh.toFixed(1)} kWh × {DEFAULT_TARIFF.exportRatePerKwhPence}p
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-xs text-slate-400 mb-2">Net Cost</div>
+                      <div className="text-2xl font-bold text-slate-100">
+                        {formatPounds(summary.costs.netCost)}
+                      </div>
+                      <div className="mt-2 text-xs text-green-400">
+                        Saved {formatPounds(summary.costs.savingsVsAllPeak)} vs all-peak
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

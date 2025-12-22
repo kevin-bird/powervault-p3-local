@@ -25,6 +25,8 @@ export function useDataCapture({ measurements, paused = false }: UseDataCaptureO
         grid_power: measurements.grid_power ?? 0,
         house_power: measurements.house_power ?? 0,
         battery_power: measurements.battery_power ?? 0,
+        solar_power: measurements.solar_power ?? 0,
+        aux_power: measurements.aux_power ?? 0,
         battery_soc: measurements.soc ?? 0,
         battery_usable: measurements.battery_capacity ?? measurements.soc ?? 0,
         battery_voltage: measurements.battery_voltage ?? 0,
@@ -38,7 +40,7 @@ export function useDataCapture({ measurements, paused = false }: UseDataCaptureO
       addMeasurement(record)
         .then(() => {
           lastCaptureRef.current = now
-          setRecordCount(prev => prev + 1)
+          setRecordCount((prev: number) => prev + 1)
         })
         .catch(err => console.error('Failed to store measurement:', err))
     }
