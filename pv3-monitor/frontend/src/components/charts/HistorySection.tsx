@@ -207,7 +207,6 @@ export function HistorySection({ recordCount, paused, onPauseToggle }: HistorySe
   const [storageSize, setStorageSize] = useState(0)
   const [loading, setLoading] = useState(false)
   const isServerMode = settings?.collection_mode === 'server'
-  const chartRange = getTimeRangeDate(timeRange)
 
   useEffect(() => {
     if (settingsLoading) return
@@ -321,6 +320,8 @@ export function HistorySection({ recordCount, paused, onPauseToggle }: HistorySe
         return { start: today, end: now }
     }
   }
+
+  const chartRange = getTimeRangeDate(timeRange)
 
   const calculateDailySummary = (): DailySummaryData | null => {
     if (data.length < 2) return null
