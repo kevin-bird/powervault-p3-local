@@ -85,6 +85,43 @@ function getMinutesInTimeZone(timestamp: Date, timeZone: string): number {
   return Number(hourPart) * 60 + Number(minutePart)
 }
 
+function getOffsetMinutesInTimeZone(timestamp: Date, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    timeZoneName: 'shortOffset',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(timestamp)
+
+  const offsetRaw = parts.find(p => p.type === 'timeZoneName')?.value ?? 'GMT'
+  const match = /GMT(?<sign>[+-])(?<hh>\d{1,2})(?::(?<mm>\d{2}))?/.exec(offsetRaw)
+  if (!match?.groups) return 0
+
+  const sign = match.groups.sign === '-' ? -1 : 1
+  const hh = Number(match.groups.hh)
+  const mm = Number(match.groups.mm ?? '0')
+  return sign * (hh * 60 + mm)
+}
+
+function startOfDayInTimeZone(now: Date, timeZone: string): Date {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(now)
+
+  const year = Number(parts.find(p => p.type === 'year')?.value ?? '1970')
+  const month = Number(parts.find(p => p.type === 'month')?.value ?? '01')
+  const day = Number(parts.find(p => p.type === 'day')?.value ?? '01')
+
+  // Start with UTC midnight for that calendar day, then subtract the zone offset at that instant.
+  const utcCandidate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0))
+  const offsetMinutes = getOffsetMinutesInTimeZone(utcCandidate, timeZone)
+  return new Date(utcCandidate.getTime() - offsetMinutes * 60 * 1000)
+}
+
 function isLowRatePeriod(timestamp: Date, tariff: TariffConfig): boolean {
   // Low-rate windows are in UK local time (including DST), not browser/server timezone.
   const timeValue = getMinutesInTimeZone(timestamp, 'Europe/London')
@@ -255,7 +292,7 @@ export function HistorySection({ recordCount, paused, onPauseToggle }: HistorySe
 
   const getTimeRangeDate = (range: TimeRange): { start: Date; end: Date } => {
     const now = new Date()
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const today = startOfDayInTimeZone(now, 'Europe/London')
     
     switch (range) {
       case 'today':
