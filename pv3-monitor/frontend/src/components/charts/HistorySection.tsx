@@ -507,11 +507,11 @@ export function HistorySection({ recordCount, paused, onPauseToggle }: HistorySe
                   <div className="flex items-center justify-between gap-4 mb-4">
                     <h4 className="text-sm font-semibold text-slate-100">Costs</h4>
                     <div className="text-xs text-slate-400">
-                      Low: {DEFAULT_TARIFF.lowRatePerKwhPence}p • High: {DEFAULT_TARIFF.highRatePerKwhPence}p • Export: {DEFAULT_TARIFF.exportRatePerKwhPence}p • Standing: {DEFAULT_TARIFF.standingChargePerDayPence}p/day
+                      Low: {DEFAULT_TARIFF.lowRatePerKwhPence}p • High: {DEFAULT_TARIFF.highRatePerKwhPence}p • Standing: {DEFAULT_TARIFF.standingChargePerDayPence}p/day
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 gap-6">
                     <div>
                       <div className="text-xs text-slate-400 mb-2">Import Cost</div>
                       <div className="text-2xl font-bold text-red-400">
@@ -530,26 +530,6 @@ export function HistorySection({ recordCount, paused, onPauseToggle }: HistorySe
                           <span>Standing Charge</span>
                           <span className="text-slate-200">{formatPounds(summary.costs.standingCharge)}</span>
                         </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="text-xs text-slate-400 mb-2">Export Credit</div>
-                      <div className="text-2xl font-bold text-green-400">
-                        {formatPounds(summary.costs.exportCredit)}
-                      </div>
-                      <div className="mt-2 text-xs text-slate-400">
-                        {summary.grid.exportKwh.toFixed(1)} kWh × {DEFAULT_TARIFF.exportRatePerKwhPence}p
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="text-xs text-slate-400 mb-2">Net Cost</div>
-                      <div className="text-2xl font-bold text-slate-100">
-                        {formatPounds(summary.costs.netCost)}
-                      </div>
-                      <div className="mt-2 text-xs text-green-400">
-                        Saved {formatPounds(summary.costs.savingsVsAllPeak)} vs all-peak
                       </div>
                     </div>
                   </div>
