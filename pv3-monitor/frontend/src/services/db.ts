@@ -6,10 +6,10 @@ export interface MeasurementRecord {
   grid_power: number
   house_power: number
   battery_power: number
-  solar_power?: number
+  solar_power?: number | null
   aux_power?: number
-  solar_garden_room_power?: number
-  solar_loft_power?: number
+  solar_garden_room_power?: number | null
+  solar_loft_power?: number | null
   battery_soc: number
   battery_usable: number
   battery_voltage: number

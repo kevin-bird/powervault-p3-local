@@ -263,10 +263,10 @@ export function HistorySection({ recordCount, paused, onPauseToggle }: HistorySe
           grid_power: record.grid_power ?? 0,
           house_power: record.house_power ?? 0,
           battery_power: record.battery_power ?? 0,
-          solar_power: record.solar_power ?? 0,
+          solar_power: record.solar_power ?? null,
           aux_power: record.aux_power ?? 0,
-          solar_garden_room_power: record.solar_garden_room_power ?? 0,
-          solar_loft_power: record.solar_loft_power ?? 0,
+          solar_garden_room_power: record.solar_garden_room_power ?? null,
+          solar_loft_power: record.solar_loft_power ?? null,
           battery_soc: record.battery_soc ?? 0,
           battery_usable: record.battery_usable ?? 0,
           battery_voltage: record.battery_voltage ?? 0,
@@ -335,11 +335,11 @@ export function HistorySection({ recordCount, paused, onPauseToggle }: HistorySe
     let batteryDischarge = 0
 
     let solarTotal = 0
-    let solarAny = false
+    let solarSeen = false
     let solarGarden = 0
     let solarLoft = 0
-    let solarGardenAny = false
-    let solarLoftAny = false
+    let solarGardenSeen = false
+    let solarLoftSeen = false
 
     let evCharging = 0
     let evAny = false
@@ -370,22 +370,22 @@ export function HistorySection({ recordCount, paused, onPauseToggle }: HistorySe
         batteryDischarge += (Math.abs(batteryPower) / 1000) * intervalHours
       }
 
-      const solarPower = current.solar_power ?? 0
-      if (solarPower > 0) {
-        solarTotal += (solarPower / 1000) * intervalHours
-        solarAny = true
+      const solarPowerRaw = current.solar_power
+      if (solarPowerRaw !== undefined && solarPowerRaw !== null) {
+        solarTotal += (Math.max(0, solarPowerRaw) / 1000) * intervalHours
+        solarSeen = true
       }
 
-      const solarGardenPower = current.solar_garden_room_power ?? 0
-      if (solarGardenPower > 0) {
-        solarGarden += (solarGardenPower / 1000) * intervalHours
-        solarGardenAny = true
+      const solarGardenPowerRaw = current.solar_garden_room_power
+      if (solarGardenPowerRaw !== undefined && solarGardenPowerRaw !== null) {
+        solarGarden += (Math.max(0, solarGardenPowerRaw) / 1000) * intervalHours
+        solarGardenSeen = true
       }
 
-      const solarLoftPower = current.solar_loft_power ?? 0
-      if (solarLoftPower > 0) {
-        solarLoft += (solarLoftPower / 1000) * intervalHours
-        solarLoftAny = true
+      const solarLoftPowerRaw = current.solar_loft_power
+      if (solarLoftPowerRaw !== undefined && solarLoftPowerRaw !== null) {
+        solarLoft += (Math.max(0, solarLoftPowerRaw) / 1000) * intervalHours
+        solarLoftSeen = true
       }
 
       const auxPower = current.aux_power ?? 0
@@ -395,9 +395,9 @@ export function HistorySection({ recordCount, paused, onPauseToggle }: HistorySe
       }
     }
 
-    if (!solarAny && (solarGardenAny || solarLoftAny)) {
+    if (!solarSeen && (solarGardenSeen || solarLoftSeen)) {
       solarTotal = solarGarden + solarLoft
-      solarAny = true
+      solarSeen = true
     }
 
     const efficiencyPercent = batteryCharge > 0 ? (batteryDischarge / batteryCharge) * 100 : 0
@@ -435,12 +435,12 @@ export function HistorySection({ recordCount, paused, onPauseToggle }: HistorySe
         efficiencyPercent,
       },
       solar: {
-        totalKwh: solarAny ? solarTotal : null,
-        gardenRoomKwh: solarGardenAny ? solarGarden : null,
-        loftKwh: solarLoftAny ? solarLoft : null,
+        totalKwh: solarSeen ? solarTotal : null,
+        gardenRoomKwh: solarGardenSeen ? solarGarden : null,
+        loftKwh: solarLoftSeen ? solarLoft : null,
       },
       consumption: {
-        houseTotalKwh: solarAny ? Math.max(0, houseTotal) : null,
+        houseTotalKwh: solarSeen ? Math.max(0, houseTotal) : null,
         evChargingKwh: evAny ? evCharging : null,
       },
       costs: {

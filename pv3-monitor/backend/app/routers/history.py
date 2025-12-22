@@ -196,6 +196,25 @@ order by latest.bucket_ts asc;
             if "solar_loft_power" in metric_list:
                 record["solar_loft_power"] = solar_loft_by_bucket.get(key)
 
+    if (wants_solar_total or wants_solar_breakdown) and not records:
+        all_solar_keys = set(solar_by_bucket.keys()) | set(solar_garden_by_bucket.keys()) | set(solar_loft_by_bucket.keys())
+        for key in all_solar_keys:
+            records[key] = {
+                "timestamp": key,
+                "grid_power": None,
+                "house_power": None,
+                "battery_power": None,
+                "solar_power": solar_by_bucket.get(key) if wants_solar_total else None,
+                "solar_garden_room_power": solar_garden_by_bucket.get(key) if "solar_garden_room_power" in metric_list else None,
+                "solar_loft_power": solar_loft_by_bucket.get(key) if "solar_loft_power" in metric_list else None,
+                "aux_power": None,
+                "battery_soc": None,
+                "battery_usable": None,
+                "battery_voltage": None,
+                "grid_voltage": None,
+                "cell_temp_avg": None,
+            }
+
     return [records[key] for key in sorted(records.keys())]
 
 
