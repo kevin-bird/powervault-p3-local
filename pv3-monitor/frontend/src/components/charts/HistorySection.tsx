@@ -416,7 +416,7 @@ export function HistorySection({ recordCount, paused, onPauseToggle }: HistorySe
 
     const houseTotal =
       gridImport +
-      (solarAny ? solarTotal : 0) +
+      (solarSeen ? solarTotal : 0) +
       batteryDischarge -
       gridExport -
       batteryCharge -
